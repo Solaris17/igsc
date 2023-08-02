@@ -62,3 +62,5 @@ CPackSourceConfig.cmake
 *.su
 *.idb
 *.pdb
+/.vs/igsc/FileContentIndex
+/.vs
