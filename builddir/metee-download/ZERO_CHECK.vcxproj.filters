@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee-download\CMakeFiles\2a70f26823d63ade7045d841ba9cc9be\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{E9C8DA45-A651-36E5-8846-90B01E338955}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

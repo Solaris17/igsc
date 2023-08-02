@@ -48,21 +48,21 @@ Both cmake and meson build framework are supported.
 ```
 
 
-*Windows: (Visual Studio 2019)*
+*Windows: (Visual Studio 2022)*
 
-From the "Developer Command Prompt for VS 2019" with CMake component installed:
+From the "Developer Command Prompt for VS 2022" with CMake component installed:
 
 ```sh
-    cmake -G "Visual Studio 16 2019" -S . -B builddir
+    cmake -G "Visual Studio 17 2022" -S . -B builddir
     cmake --build builddir --config Release
 ```
 
-*Windows Debug version: (Visual Studio 2019)*
+*Windows Debug version: (Visual Studio 2022)*
 
-From the "Developer Command Prompt for VS 2019" with CMake component installed:
+From the "Developer Command Prompt for VS 2022" with CMake component installed:
 
 ```sh
-    cmake -G "Visual Studio 16 2019" -S . -B builddir
+    cmake -G "Visual Studio 17 2022" -S . -B builddir
     cmake --build builddir --config Debug
 ```
 

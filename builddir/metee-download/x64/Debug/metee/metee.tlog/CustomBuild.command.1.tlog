@@ -1,0 +1,152 @@
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-MKDIR.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/tmp/metee-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-DOWNLOAD.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -P D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/tmp/metee-gitclone.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-UPDATE.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-PATCH.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-CONFIGURE.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-BUILD.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-INSTALL.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\5C344B0AAB61F6699F7826477B73C103\METEE-TEST.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee-build
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\B2D4CC2A288583BFA6F93F7EA2AC5A81\METEE-COMPLETE.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E make_directory D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/CMakeFiles/Debug/metee-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-prefix/src/metee-stamp/Debug/metee-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\2A70F26823D63ADE7045D841BA9CC9BE\METEE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download -BD:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download --check-stamp-file D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

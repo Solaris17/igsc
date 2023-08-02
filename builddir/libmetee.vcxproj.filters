@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\4f769bb2d89f38747bd8928ffe6b2ced\libmetee-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\d1a384cd23779064d596203c65e8f6c2\libmetee-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\86520b4db2fb78c06bda1edca087d6bd\libmetee.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="D:\OneDrive\Documents\Projects\repos\igsc\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\OneDrive\Documents\Projects\repos\igsc\builddir\CMakeFiles\libmetee" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{7EB13BD2-F773-3EDE-87E9-1A5FFB05C346}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\86520B4DB2FB78C06BDA1EDCA087D6BD\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/OneDrive/Documents/Projects/repos/igsc -BD:/OneDrive/Documents/Projects/repos/igsc/builddir --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/OneDrive/Documents/Projects/repos/igsc/builddir/igsc.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

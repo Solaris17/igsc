@@ -1,0 +1,10 @@
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\METEE-DOWNLOAD\CMAKEFILES\2A70F26823D63ADE7045D841BA9CC9BE\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download -BD:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee-download/metee-download.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

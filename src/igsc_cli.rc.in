@@ -70,7 +70,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "Intel Corporation"
-            VALUE "FileDescription", "IGSC Firmware Update Utility"
+            VALUE "FileDescription", "IGSC Firmware Update Utility (Solaris17)"
             VALUE "FileVersion", "@GSC_VERSION_STRING@"
             VALUE "InternalName", "igsc_cli"
             VALUE "LegalCopyright", "Copyright (c) 2020, Intel Corporation."

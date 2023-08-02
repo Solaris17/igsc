@@ -1,0 +1,156 @@
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-MKDIR.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -Dcfgdir=/Debug -P D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/tmp/libmetee-mkdirs.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-DOWNLOAD.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\libmetee-prefix\src
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-UPDATE.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-PATCH.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-CONFIGURE.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -DBUILD_MSVC_RUNTIME_STATIC=ON "-GVisual Studio 17 2022" "-DCMAKE_GENERATOR_INSTANCE:INTERNAL=C:/Program Files/Microsoft Visual Studio/2022/Community" -S D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee -B D:/OneDrive/Documents/Projects/repos/igsc/builddir/metee
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-BUILD.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build . --config Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-INSTALL.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\4F769BB2D89F38747BD8928FFE6B2CED\LIBMETEE-TEST.RULE
+setlocal
+cd D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee
+if %errorlevel% neq 0 goto :cmEnd
+D:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-test
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\D1A384CD23779064D596203C65E8F6C2\LIBMETEE-COMPLETE.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E make_directory D:/OneDrive/Documents/Projects/repos/igsc/builddir/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/CMakeFiles/Debug/libmetee-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -E touch D:/OneDrive/Documents/Projects/repos/igsc/builddir/libmetee-prefix/src/libmetee-stamp/Debug/libmetee-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\BUILDDIR\CMAKEFILES\86520B4DB2FB78C06BDA1EDCA087D6BD\LIBMETEE.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^D:\ONEDRIVE\DOCUMENTS\PROJECTS\REPOS\IGSC\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SD:/OneDrive/Documents/Projects/repos/igsc -BD:/OneDrive/Documents/Projects/repos/igsc/builddir --check-stamp-file D:/OneDrive/Documents/Projects/repos/igsc/builddir/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

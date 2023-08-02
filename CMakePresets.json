@@ -4,9 +4,9 @@
       {
       "name": "base",
       "displayName": "Windows x86-64 base",
-      "description": "Build x86-64 Release, VS2019, Conan",
+      "description": "Build x86-64 Release, VS2022, Conan",
       "hidden": true,
-      "generator": "Visual Studio 16 2019",
+      "generator": "Visual Studio 17 2022",
       "architecture": {
         "value": "x64",
         "strategy": "set"
@@ -19,7 +19,7 @@
     {
       "name": "Debug",
       "displayName": "Windows x86-64 Debug",
-      "description": "Build x86-64 Debug, VS2019, Conan",
+      "description": "Build x86-64 Debug, VS2022, Conan",
       "inherits": "base",
       "binaryDir": "${sourceDir}/Debug",
       "cacheVariables": {
@@ -29,7 +29,7 @@
     {
       "name": "Release",
       "displayName": "Windows x86-64 Release",
-      "description": "Build x86-64 Release, VS2019, Conan",
+      "description": "Build x86-64 Release, VS2022, Conan",
       "inherits": "base",
       "binaryDir": "${sourceDir}/Release",
       "cacheVariables": {

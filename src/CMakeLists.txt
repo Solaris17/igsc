@@ -22,7 +22,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 target_compile_options(${PROJECT_NAME} PRIVATE ${COMPILE_OPTIONS})
 
-target_link_libraries(${PROJECT_NAME} igsc)
+target_link_libraries(${PROJECT_NAME} igsc
+                      ${CMAKE_CURRENT_SOURCE_DIR}/app.res
+)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME igsc)
 
 if(NOT BUILD_SHARED_LIBS)
