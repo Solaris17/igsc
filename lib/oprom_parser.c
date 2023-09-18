@@ -93,10 +93,9 @@ struct igsc_oprom_image {
     uint32_t cur_device_4ids_data_pos;      /**< iterator's current 4ids data device position */
 };
 
-#if defined(DEBUG) || defined(_DEBUG)
 static void debug_print_device_type_ext(struct mft_oprom_device_type_ext *ext)
 {
-    struct oprom_subsystem_device_id *dev = &ext->device_ids[0];
+    struct oprom_subsystem_device_id *dev;
     size_t len = sizeof(struct mft_ext_header_with_data);
 
     if (!ext)
@@ -104,6 +103,8 @@ static void debug_print_device_type_ext(struct mft_oprom_device_type_ext *ext)
         gsc_debug("2ids extension is NULL\n");
         return;
     }
+
+    dev = &ext->device_ids[0];
 
     gsc_debug("type %u len %u\n", ext->extension_type, ext->extension_length);
     for (; len < ext->extension_length; len += sizeof(*dev))
@@ -116,7 +117,7 @@ static void debug_print_device_type_ext(struct mft_oprom_device_type_ext *ext)
 
 static void debug_print_device_4ids_ext(struct mft_oprom_device_4ids_array_ext *ext)
 {
-    struct oprom_subsystem_device_4ids *dev = &ext->device_ids[0];
+    struct oprom_subsystem_device_4ids *dev;
     size_t len = sizeof(struct mft_ext_header_with_data);
 
     if (!ext)
@@ -124,6 +125,8 @@ static void debug_print_device_4ids_ext(struct mft_oprom_device_4ids_array_ext *
         gsc_debug("4ids extension is NULL\n");
         return;
     }
+
+    dev = &ext->device_ids[0];
 
     gsc_debug("type %u len %u\n", ext->extension_type, ext->extension_length);
     for (; len < ext->extension_length; len += sizeof(*dev), dev++)
@@ -150,25 +153,6 @@ static void debug_print_oprom_version(enum igsc_oprom_type type,
            oprom_version->version[7]);
 }
 
-#else
-static inline void debug_print_device_type_ext(struct mft_oprom_device_type_ext *ext)
-{
-    (void)ext;
-}
-
-static void debug_print_oprom_version(enum igsc_oprom_type type,
-                                      const struct igsc_oprom_version *oprom_version)
-{
-    (void)type;
-    (void)oprom_version;
-}
-
-static void debug_print_device_4ids_ext(struct mft_oprom_device_4ids_array_ext *ext)
-{
-    (void)ext;
-}
-#endif
-
 static void debug_print_partition_directory_header(struct code_partition_directory_header *h)
 {
     (void)h;
@@ -194,11 +178,11 @@ static void debug_print_manifest_header(struct mft_header *h)
 
 static void debug_print_struct_sizes(void)
 {
-    gsc_debug("sizeof(struct mft_header) %ld\n",
+    gsc_debug("sizeof(struct mft_header) %zu\n",
                sizeof(struct mft_header));
-    gsc_debug("sizeof(struct rsa_3072_pss_signature) %ld\n",
+    gsc_debug("sizeof(struct rsa_3072_pss_signature) %zu\n",
                sizeof(struct rsa_3072_pss_signature));
-    gsc_debug("sizeof(struct mft_rsa_3k_key) %ld\n",
+    gsc_debug("sizeof(struct mft_rsa_3k_key) %zu\n",
                sizeof(struct mft_rsa_3k_key));
 }
 
@@ -360,7 +344,7 @@ static int image_oprom_parse_extensions(struct igsc_oprom_image *img,
                 return IGSC_ERROR_BAD_IMAGE;
             }
 
-            gsc_debug("uncompressed_size %u end-start %lu\n",
+            gsc_debug("uncompressed_size %u end-start %zu\n",
                       attr_ext->uncompressed_size, ext_end - ext_start);
         }
 
@@ -378,7 +362,7 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
     if (buf_len <= sizeof(*header) + header->num_of_entries * sizeof(header->entries[0]) ||
          header->num_of_entries < MAX_INDEX)
     {
-        gsc_error("Illegal oprom cpd image (size/num_of_entries %lu/%u)\n",
+        gsc_error("Illegal oprom cpd image (size/num_of_entries %zu/%u)\n",
                   buf_len, header->num_of_entries);
         return IGSC_ERROR_BAD_IMAGE;
     }
@@ -435,13 +419,13 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
 
     cpd_img->manifest_offset = header->entries[MANIFEST_INDEX].offset;
     cpd_img->public_key_offset = cpd_img->manifest_offset + sizeof(struct mft_header);
-    gsc_debug("public key offset = %lu\n", cpd_img->public_key_offset);
+    gsc_debug("public key offset = %zu\n", cpd_img->public_key_offset);
 
     cpd_img->signature_offset = cpd_img->public_key_offset + sizeof(struct mft_rsa_3k_key);
-    gsc_debug("signature offset = %lu\n", cpd_img->signature_offset);
+    gsc_debug("signature offset = %zu\n", cpd_img->signature_offset);
 
     cpd_img->manifest_ext_start = cpd_img->signature_offset + sizeof (struct rsa_3072_pss_signature);
-    gsc_debug("manifest start = %lu 0x%lx\n", cpd_img->manifest_ext_start,
+    gsc_debug("manifest start = %zu 0x%zx\n", cpd_img->manifest_ext_start,
                                              cpd_img->manifest_ext_start + img->cpd_offset);
 
     debug_print_struct_sizes();
@@ -449,7 +433,7 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
     if (cpd_img->public_key_offset > buf_len ||
        (cpd_img->public_key_offset + sizeof(struct mft_rsa_3k_key) > buf_len))
     {
-        gsc_error("Illegal oprom cpd image (public key offset %lu)\n",
+        gsc_error("Illegal oprom cpd image (public key offset %zu)\n",
                   cpd_img->public_key_offset);
         return IGSC_ERROR_BAD_IMAGE;
     }
@@ -459,7 +443,7 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
     if (cpd_img->signature_offset > buf_len ||
        (cpd_img->signature_offset + sizeof(struct rsa_3072_pss_signature) > buf_len))
     {
-        gsc_error("Illegal oprom cpd image (signature offset %lu)\n",
+        gsc_error("Illegal oprom cpd image (signature offset %zu)\n",
                   cpd_img->signature_offset);
         return IGSC_ERROR_BAD_IMAGE;
     }
@@ -467,7 +451,7 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
 
     if (cpd_img->manifest_ext_start > buf_len)
     {
-        gsc_error("Illegal oprom cpd image (extensions start %lu)\n", cpd_img->manifest_ext_start);
+        gsc_error("Illegal oprom cpd image (extensions start %zu)\n", cpd_img->manifest_ext_start);
         return IGSC_ERROR_BAD_IMAGE;
 
     }
@@ -482,11 +466,11 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
     cpd_img->manifest_ext_end = cpd_img->manifest_ext_start +
                     (cpd_img->manifest_header->size -
                      cpd_img->manifest_header->header_length) * sizeof(uint32_t);
-    gsc_debug("manifest end = %lu\n", cpd_img->manifest_ext_end);
+    gsc_debug("manifest end = %zu\n", cpd_img->manifest_ext_end);
 
     if (cpd_img->manifest_ext_end > buf_len)
     {
-        gsc_error("Illegal oprom cpd image (extensions end %lu)\n", cpd_img->manifest_ext_end);
+        gsc_error("Illegal oprom cpd image (extensions end %zu)\n", cpd_img->manifest_ext_end);
         return IGSC_ERROR_BAD_IMAGE;
     }
 
@@ -500,9 +484,6 @@ static int image_oprom_parse_cpd(struct igsc_oprom_image *img, size_t buf_len, u
                   header->entries[METADATA_INDEX].length);
         return IGSC_ERROR_BAD_IMAGE;
     }
-
-    cpd_img->metadata_start = header->entries[METADATA_INDEX].offset;
-    cpd_img->metadata_end = cpd_img->metadata_start + header->entries[METADATA_INDEX].length;
 
     if (image_oprom_parse_extensions(img, cpd_img->metadata_start, cpd_img->metadata_end, type))
     {
@@ -627,14 +608,14 @@ int image_oprom_parse(struct igsc_oprom_image *img)
             img->data_part_ptr = img->buffer + offset;
             img->data_part_len = pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
             cur_part_type = CUR_PART_DATA;
-            gsc_debug("DATA part: offset %ld len %d\n", offset, img->data_part_len);
+            gsc_debug("DATA part: offset %zu len %u\n", offset, img->data_part_len);
         }
         else if (pci_data->code_type == OPROM_CODE_TYPE_CODE)
         {
             img->code_part_ptr = img->buffer + offset;
             img->code_part_len = pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
             cur_part_type = CUR_PART_CODE;
-            gsc_debug("CODE part: offset %ld len %d\n", offset, img->code_part_len);
+            gsc_debug("CODE part: offset %zu len %u\n", offset, img->code_part_len);
         }
         else
         {
@@ -645,7 +626,7 @@ int image_oprom_parse(struct igsc_oprom_image *img)
             {
                 img->data_part_len += pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
                 offset += pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
-                gsc_debug("DATA part: type 0x%x offset %ld len %d\n",
+                gsc_debug("DATA part: type 0x%x offset %zu len %u\n",
                           pci_data->code_type, offset, img->data_part_len);
 
                 continue;
@@ -654,7 +635,7 @@ int image_oprom_parse(struct igsc_oprom_image *img)
             {
                 img->code_part_len += pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
                 offset += pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
-                gsc_debug("CODE part: type 0x%x offset %ld len %d\n",
+                gsc_debug("CODE part: type 0x%x offset %zu len %u\n",
                           pci_data->code_type, offset, img->code_part_len);
                 continue;
             }
@@ -692,7 +673,7 @@ int image_oprom_parse(struct igsc_oprom_image *img)
             img->cpd_ptr = img->buffer + offset + v2_header->unofficial_payload_offset;
 
 
-            gsc_debug("cpd_offset %lu\n", img->cpd_offset);
+            gsc_debug("cpd_offset %zu\n", img->cpd_offset);
 
             ret = image_oprom_parse_cpd(img, img->buffer_len - offset - img->cpd_offset, cur_part_type);
             if (ret != 0)
@@ -700,7 +681,7 @@ int image_oprom_parse(struct igsc_oprom_image *img)
         }
 
         offset += pci_data->image_length * PCI_IMG_SIZE_UNIT_SIZE;
-        gsc_debug("buffer offset %lu\n", offset);
+        gsc_debug("buffer offset %zu\n", offset);
     }
     return ret;
 }

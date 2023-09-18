@@ -80,15 +80,14 @@ static int status_tee2fu(TEESTATUS status)
     }
 }
 
-#if defined(DEBUG) || defined(_DEBUG)
-static void gsc_debug_hex_dump(const char *title, const void *buf, size_t len)
+static void gsc_trace_hex_dump(const char *title, const void *buf, size_t len)
 {
 #define pbufsz (16 * 3)
     char pbuf[pbufsz];
     const unsigned char *_buf = buf;
     size_t j = 0;
 
-    debug_print("%s\n", title);
+    trace_print("%s\n", title);
 
     while (len-- > 0)
     {
@@ -96,23 +95,15 @@ static void gsc_debug_hex_dump(const char *title, const void *buf, size_t len)
         j += 3;
         if (j == 16 * 3)
         {
-            debug_print("%s\n", pbuf);
+            trace_print("%s\n", pbuf);
             j = 0;
         }
     }
     if (j)
     {
-        debug_print("%s\n", pbuf);
+        trace_print("%s\n", pbuf);
     }
 }
-#else
-static void gsc_debug_hex_dump(const char *title, const void *buf, size_t len)
-{
-    (void)title; /* unused */
-    (void)buf;   /* unused */
-    (void)len;   /* unused */
-}
-#endif /* defined(DEBUG) || defined(_DEBUG) */
 
 mockable_static
 void driver_working_buffer_free(struct igsc_lib_ctx *lib_ctx)
@@ -210,6 +201,7 @@ int gsc_driver_init(struct igsc_lib_ctx *lib_ctx, IN const GUID *guid)
     tee_status = TeeConnect(&lib_ctx->driver_handle);
     if (!TEE_IS_SUCCESS(tee_status))
     {
+        TeeDisconnect(&lib_ctx->driver_handle);
         gsc_error("Error in HECI connect (%d)\n", tee_status);
         status = status_tee2fu(tee_status);
         goto exit;
@@ -240,6 +232,26 @@ exit:
     return status;
 }
 
+static void gsc_suppress_errors(struct igsc_lib_ctx *lib_ctx)
+{
+    lib_ctx->suppress_errors = true;
+
+    lib_ctx->tee_prev_log_level = TeeSetLogLevel(&lib_ctx->driver_handle, TEE_LOG_LEVEL_QUIET);
+
+}
+
+static void gsc_unsuppress_errors(struct igsc_lib_ctx *lib_ctx)
+{
+    lib_ctx->suppress_errors = false;
+
+    TeeSetLogLevel(&lib_ctx->driver_handle, lib_ctx->tee_prev_log_level);
+}
+
+static bool gsc_errors_suppressed(struct igsc_lib_ctx *lib_ctx)
+{
+    return lib_ctx->suppress_errors;
+}
+
 #define RECONNECT_ITERATIONS  10
 #define RECONNECT_TIMEOUT    100
 
@@ -261,7 +273,7 @@ static int driver_reconnect(struct igsc_lib_ctx *lib_ctx)
 
     if (!TEE_IS_SUCCESS(tee_status))
     {
-        gsc_error("Error in HECI connect (%d)\n", tee_status);
+        gsc_debug("Error in HECI connect (%d)\n", tee_status);
         status = status_tee2fu(tee_status);
         goto exit;
     }
@@ -494,7 +506,7 @@ static int gsc_fwu_img_layout_parse(struct gsc_fwu_img_layout *layout,
     {
         if ((entries_found_bitmask & MANDATORY_FWDATA_ENTRY_BITMASK) != MANDATORY_FWDATA_ENTRY_BITMASK)
         {
-            gsc_debug("Mandatory FPT entries missing from update image\n");
+            gsc_error("Mandatory FPT entries missing from update image\n");
             status = IGSC_ERROR_BAD_IMAGE;
             goto exit;
         }
@@ -503,7 +515,7 @@ static int gsc_fwu_img_layout_parse(struct gsc_fwu_img_layout *layout,
     {
         if ((entries_found_bitmask & MANDATORY_ENTRY_BITMASK) != MANDATORY_ENTRY_BITMASK)
         {
-            gsc_debug("Mandatory FPT entries missing from update image\n");
+            gsc_error("Mandatory FPT entries missing from update image\n");
             status = IGSC_ERROR_BAD_IMAGE;
             goto exit;
         }
@@ -551,7 +563,7 @@ static int gsc_fwu_heci_validate_response_header(struct igsc_lib_ctx *lib_ctx,
 
     if (resp_header->header.command_id != command_id)
     {
-        gsc_debug("Invalid command ID (%d)\n",
+        gsc_error("Invalid command ID (%d)\n",
                 resp_header->header.command_id);
         status = IGSC_ERROR_PROTOCOL;
         goto exit;
@@ -559,7 +571,7 @@ static int gsc_fwu_heci_validate_response_header(struct igsc_lib_ctx *lib_ctx,
 
     if (resp_header->header.is_response != true)
     {
-        gsc_debug("HECI Response not marked as response\n");
+        gsc_error("HECI Response not marked as response\n");
         status = IGSC_ERROR_PROTOCOL;
         goto exit;
     }
@@ -619,13 +631,20 @@ int gsc_tee_command(struct igsc_lib_ctx *lib_ctx,
     int status;
     TEESTATUS tee_status;
 
-    gsc_debug_hex_dump("Sending:", req_buf, request_len);
+    gsc_trace_hex_dump("Sending:", req_buf, request_len);
 
     num_bytes = 0;
     tee_status = TeeWrite(&lib_ctx->driver_handle, req_buf, request_len, &num_bytes, TEE_WRITE_TIMEOUT);
     if (!TEE_IS_SUCCESS(tee_status))
     {
-        gsc_error("Error in HECI write (%d)\n", tee_status);
+        if (gsc_errors_suppressed(lib_ctx))
+        {
+            gsc_debug("Error in HECI write (%d)\n", tee_status);
+        }
+        else
+        {
+            gsc_error("Error in HECI write (%d)\n", tee_status);
+        }
         status = status_tee2fu(tee_status);
         goto exit;
     }
@@ -639,12 +658,19 @@ int gsc_tee_command(struct igsc_lib_ctx *lib_ctx,
     tee_status = TeeRead(&lib_ctx->driver_handle, resp_buf, buf_size, response_len, TEE_READ_TIMEOUT);
     if (!TEE_IS_SUCCESS(tee_status))
     {
-        gsc_error("Error in HECI read %d\n", tee_status);
+        if (gsc_errors_suppressed(lib_ctx))
+        {
+            gsc_debug("Error in HECI read %d\n", tee_status);
+        }
+        else
+        {
+            gsc_error("Error in HECI read %d\n", tee_status);
+        }
         status = status_tee2fu(tee_status);
         goto exit;
     }
 
-    gsc_debug_hex_dump("Received:", resp_buf, *response_len);
+    gsc_trace_hex_dump("Received:", resp_buf, *response_len);
 
     status = IGSC_SUCCESS;
 
@@ -672,7 +698,7 @@ static int gsc_send_no_update(struct igsc_lib_ctx *lib_ctx)
     req->header.command_id = GSC_FWU_HECI_COMMAND_ID_NO_UPDATE;
     req->reserved = 0;
 
-    gsc_debug_hex_dump("Sending:", (unsigned char *)req, request_len);
+    gsc_trace_hex_dump("Sending:", (unsigned char *)req, request_len);
 
     tee_status = TeeWrite(&lib_ctx->driver_handle, req, request_len, NULL, TEE_WRITE_TIMEOUT);
     if (!TEE_IS_SUCCESS(tee_status))
@@ -727,7 +753,7 @@ static int gsc_fwu_get_version(struct igsc_lib_ctx *lib_ctx,
     status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
     if (status != IGSC_SUCCESS)
     {
-        gsc_error("Invalid HECI message response (%d)\n", status);
+        gsc_debug("Invalid HECI message response (%d)\n", status);
         goto exit;
     }
 
@@ -857,7 +883,7 @@ static int gsc_fwu_start(struct igsc_lib_ctx *lib_ctx, uint32_t payload_type, bo
     memset(req->reserved, 0, sizeof(req->reserved));
     if (gsc_memcpy_s(&req->data, buf_len - sizeof(*req), fpt_info, fpt_info_len))
     {
-        gsc_error("Copy of meta data failed, buf len %ld meta data len %u\n",
+        gsc_error("Copy of meta data failed, buf len %zu meta data len %u\n",
                   buf_len - sizeof(*req), fpt_info_len);
         status = IGSC_ERROR_INTERNAL;
         goto exit;
@@ -992,7 +1018,7 @@ static int gsc_fwu_end(struct igsc_lib_ctx *lib_ctx)
     req->header.command_id = command_id;
     req->reserved = 0;
 
-    gsc_debug_hex_dump("Sending:", (unsigned char *)req, request_len);
+    gsc_trace_hex_dump("Sending:", (unsigned char *)req, request_len);
 
     tee_status = TeeWrite(&lib_ctx->driver_handle, req, request_len, NULL, TEE_WRITE_TIMEOUT);
     if (!TEE_IS_SUCCESS(tee_status))
@@ -1423,6 +1449,14 @@ static int gsc_device_hw_config(struct igsc_lib_ctx *lib_ctx,
         goto exit;
     }
 
+    /* Some platforms do not support hw_config command, it should not be treated as error */
+    if (resp->response.status == GSC_FWU_STATUS_INVALID_COMMAND)
+    {
+        gsc_debug("Hw config command is not supported by the firmware\n");
+        status = IGSC_ERROR_NOT_SUPPORTED;
+        goto exit;
+    }
+
     status = gsc_fwu_heci_validate_response_header(lib_ctx, &resp->response, command_id);
     if (status != IGSC_SUCCESS)
     {
@@ -1519,7 +1553,6 @@ int igsc_device_hw_config(IN struct igsc_device_handle *handle,
                           OUT struct igsc_hw_config *hw_config)
 {
     struct igsc_lib_ctx *lib_ctx;
-    struct igsc_fw_version version;
     int ret;
 
     if (handle == NULL || handle->ctx == NULL || hw_config == NULL)
@@ -1527,9 +1560,6 @@ int igsc_device_hw_config(IN struct igsc_device_handle *handle,
         gsc_error("Bad parameters\n");
         return IGSC_ERROR_INVALID_PARAMETER;
     }
-
-    memset(&version, 0, sizeof(version));
-    memset(hw_config, 0, sizeof(*hw_config));
 
     lib_ctx = handle->ctx;
     ret = gsc_driver_init(lib_ctx, &GUID_METEE_FWU);
@@ -1539,28 +1569,19 @@ int igsc_device_hw_config(IN struct igsc_device_handle *handle,
         return ret;
     }
 
-    ret = gsc_get_fw_version(lib_ctx, &version);
-    if (ret != IGSC_SUCCESS)
-    {
-        gsc_error("Failed to retrieve firmware version %d\n", ret);
-        goto exit;
-    }
-
-    /* the command is only supported on DG2 */
-    if (memcmp(version.project, "DG02", sizeof(version.project)))
-    {
-        gsc_error("Config option is not available\n");
-        ret = IGSC_ERROR_NOT_SUPPORTED;
-        goto exit;
-    }
+    memset(hw_config, 0, sizeof(*hw_config));
 
     ret = gsc_device_hw_config(lib_ctx, hw_config);
-    if (ret != IGSC_SUCCESS)
+    if (ret == IGSC_ERROR_NOT_SUPPORTED)
+    {
+        /* some projects do not support get hw_config command, it's legal */
+        gsc_debug("Getting hardware config is not supported by the firmware\n");
+    }
+    else if (ret != IGSC_SUCCESS)
     {
         gsc_error("Failed to retrieve hardware config %d\n", ret);
     }
 
-exit:
     gsc_driver_deinit(lib_ctx);
 
     return ret;
@@ -1774,8 +1795,9 @@ static int gsc_image_hw_config(const struct gsc_fwu_img_layout *layout,
 
     if (info_len < sizeof(*info))
     {
-        gsc_error("No valid IMGI section in the image\n");
-        return IGSC_ERROR_BAD_IMAGE;
+        /* Some images (like DG1) do not have IMGI section, this is legal */
+        gsc_debug("No valid IMGI section in the image\n");
+        return IGSC_ERROR_NOT_SUPPORTED;
     }
 
     if (info->format_version != FWU_GWS_IMAGE_INFO_FORMAT_VERSION)
@@ -1820,14 +1842,12 @@ int igsc_image_hw_config(IN  const uint8_t *buffer,
 {
     int    ret;
     struct gsc_fwu_img_layout layout;
-    struct igsc_fw_version version;
 
     if (buffer == NULL || buffer_len == 0 || hw_config == NULL)
     {
         return IGSC_ERROR_INVALID_PARAMETER;
     }
 
-    memset(&version, 0, sizeof(version));
     memset(hw_config, 0, sizeof(*hw_config));
 
     gsc_fwu_img_layout_reset(&layout);
@@ -1840,18 +1860,6 @@ int igsc_image_hw_config(IN  const uint8_t *buffer,
     if (ret != IGSC_SUCCESS)
     {
         return ret;
-    }
-
-    ret = gsc_image_fw_version(&layout, &version);
-    if (ret != IGSC_SUCCESS)
-    {
-        return ret;
-    }
-
-    /* the command is only supported on DG2 */
-    if (memcmp(version.project, "DG02", sizeof(version.project)))
-    {
-        return IGSC_ERROR_NOT_SUPPORTED;
     }
 
     return gsc_image_hw_config(&layout, hw_config);
@@ -1973,6 +1981,9 @@ static int reconnect_loop(struct igsc_lib_ctx *lib_ctx)
     unsigned int j;
     int ret;
 
+    /* replace error with debug prints because here failure is expected */
+    gsc_suppress_errors(lib_ctx);
+
     for (j = 0; j < MAX_RECONNECT_RETRIES; j++)
     {
         ret = driver_reconnect(lib_ctx);
@@ -1983,6 +1994,9 @@ static int reconnect_loop(struct igsc_lib_ctx *lib_ctx)
         gsc_debug("reconnect failed #%d\n", j);
         gsc_msleep(300);
     }
+
+    gsc_unsuppress_errors(lib_ctx);
+
     return ret;
 }
 
@@ -1997,6 +2011,9 @@ static void get_version_loop(struct igsc_lib_ctx *lib_ctx)
     struct igsc_fw_version version;
     unsigned int i;
 
+    /* replace error with debug prints because here failure is expected */
+    gsc_suppress_errors(lib_ctx);
+
     for (i = 0; i < MAX_GET_VERSION_RETRIES; i++)
     {
         if (gsc_get_fw_version(lib_ctx, &version) != IGSC_SUCCESS)
@@ -2005,6 +2022,9 @@ static void get_version_loop(struct igsc_lib_ctx *lib_ctx)
         }
         gsc_msleep(100);
     }
+
+    gsc_unsuppress_errors(lib_ctx);
+
 }
 
 #define FWU_TIMEOUT_THRESHOLD_DEFAULT 300000 /* 5 min in units of 1 msec */
@@ -2230,7 +2250,6 @@ retry:
     }
 
 exit:
-
     gsc_fwu_img_layout_reset(&lib_ctx->layout);
 
     gsc_driver_deinit(lib_ctx);
@@ -3125,7 +3144,7 @@ static int mchi_read_file(IN  struct igsc_device_handle *handle,
 
     if (lib_ctx->working_buffer_length <= sizeof(struct mchi_read_file_ex_res))
     {
-       gsc_error("Max heci message length for this heci client is too small: %lu\n",
+       gsc_error("Max heci message length for this heci client is too small: %zu\n",
                  lib_ctx->working_buffer_length);
        status = IGSC_ERROR_INTERNAL;
        goto exit;
@@ -3209,7 +3228,7 @@ int igsc_device_oem_version(IN  struct igsc_device_handle *handle,
        return IGSC_ERROR_PROTOCOL;
     }
 
-    gsc_debug_hex_dump("OEM Version:", version->version, received_version_size);
+    gsc_trace_hex_dump("OEM Version:", version->version, received_version_size);
 
     version->length = (uint16_t) received_version_size;
     return ret;
