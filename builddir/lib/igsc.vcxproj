@@ -24,7 +24,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F4DE90C0-14E3-3380-9CD7-4BD3B575A33D}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.22000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <Platform>x64</Platform>
     <ProjectName>igsc</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
@@ -103,11 +103,11 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.9";CMAKE_INTDIR="Debug";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.13";CMAKE_INTDIR="Debug";igsc_EXPORTS</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.9\";CMAKE_INTDIR=\"Debug\";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.13\";CMAKE_INTDIR=\"Debug\";igsc_EXPORTS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\OneDrive\Documents\Projects\repos\igsc\lib\.;D:\OneDrive\Documents\Projects\repos\igsc\include;D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
@@ -149,13 +149,13 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.9";CMAKE_INTDIR="Release";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.13";CMAKE_INTDIR="Release";igsc_EXPORTS</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.9\";CMAKE_INTDIR=\"Release\";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.13\";CMAKE_INTDIR=\"Release\";igsc_EXPORTS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\OneDrive\Documents\Projects\repos\igsc\lib\.;D:\OneDrive\Documents\Projects\repos\igsc\include;D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
@@ -197,13 +197,13 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.9";CMAKE_INTDIR="MinSizeRel";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.13";CMAKE_INTDIR="MinSizeRel";igsc_EXPORTS</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
       <DebugInformationFormat>
       </DebugInformationFormat>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.9\";CMAKE_INTDIR=\"MinSizeRel\";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.13\";CMAKE_INTDIR=\"MinSizeRel\";igsc_EXPORTS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\OneDrive\Documents\Projects\repos\igsc\lib\.;D:\OneDrive\Documents\Projects\repos\igsc\include;D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
@@ -246,11 +246,11 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseFullPaths>false</UseFullPaths>
       <WarningLevel>Level4</WarningLevel>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.9";CMAKE_INTDIR="RelWithDebInfo";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION="0.8.13";CMAKE_INTDIR="RelWithDebInfo";igsc_EXPORTS</PreprocessorDefinitions>
       <ObjectFileName>$(IntDir)</ObjectFileName>
     </ClCompile>
     <ResourceCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.9\";CMAKE_INTDIR=\"RelWithDebInfo\";igsc_EXPORTS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;UNICODE;_UNICODE;IGSC_DLL_EXPORTS;IGSC_DLL;IGSC_VERSION=\"0.8.13\";CMAKE_INTDIR=\"RelWithDebInfo\";igsc_EXPORTS</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\OneDrive\Documents\Projects\repos\igsc\lib\.;D:\OneDrive\Documents\Projects\repos\igsc\include;D:\OneDrive\Documents\Projects\repos\igsc\builddir\metee\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
@@ -334,6 +334,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\igsc_lib.c" />
+    <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\igsc_log.c" />
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\ifr.c" />
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\oprom.c" />
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\oprom_parser.c" />

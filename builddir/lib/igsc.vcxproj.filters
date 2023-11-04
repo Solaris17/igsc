@@ -4,6 +4,9 @@
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\igsc_lib.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\igsc_log.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\OneDrive\Documents\Projects\repos\igsc\lib\ifr.c">
       <Filter>Source Files</Filter>
     </ClCompile>

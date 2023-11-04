@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,8,9,0
- PRODUCTVERSION 0,8,9,0
+ FILEVERSION 0,8,13,0
+ PRODUCTVERSION 0,8,13,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +71,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Intel Corporation"
             VALUE "FileDescription", "IGSC Firmware Update Utility (Solaris17)"
-            VALUE "FileVersion", "0.8.9"
+            VALUE "FileVersion", "0.8.13"
             VALUE "InternalName", "igsc_cli"
             VALUE "LegalCopyright", "Copyright (c) 2020, Intel Corporation."
             VALUE "OriginalFilename", "igsc.exe"
             VALUE "ProductName", "Intel(r) Graphics System Controller Firmware Update Utility"
-            VALUE "ProductVersion", "0.8.9"
+            VALUE "ProductVersion", "0.8.13"
         END
     END
     BLOCK "VarFileInfo"
