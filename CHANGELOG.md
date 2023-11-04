@@ -1,9 +1,38 @@
 # IGSC FUL
 
+## [v0.8.16] - 2023-10-31
+
+### Added
+1. cli: add delay between the update and get firmware version
+
+## [v0.8.15] - 2023-10-24
+
+### Changed
+1. conan: use metee 3.2.4
+
+### Fixed
+1. lib: wait for reset at the end of the update
+2. lib: wait for background operation to finish
+
+## [v0.8.14] - 2023-09-20
+
+### Fixed
+1. gitignore: ignore VisualStudio directory
+2. ci: fix clang-tidy reporting
+
+### Changed
+1. cli: do not use relative includes
+2. cli: the global variables used only in one c file should be static
+3. lib: move chunk_size declaration to its scope in gsc_update
+4. ut: update cmake for new cmocka packaging
+
+### Added
+1. qb: copy PDB file to output and generate public pdb
+2. Windows: generate pdb in Release build
+
 ## [v0.8.13] - 2023-06-13
 
 ### Fixed
-
 1. lib: disconnect on failure in gsc_driver_init
 
 ### Changed
