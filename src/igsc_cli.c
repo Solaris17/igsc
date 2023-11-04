@@ -20,11 +20,23 @@
 #include "msvc/config.h"
 
 #include "igsc_lib.h"
-#include "../lib/utils.h"
+#ifdef __linux__
+#define _countof(a) (sizeof(a)/sizeof(*(a)))
+static inline void gsc_msleep(uint32_t msecs)
+{
+    usleep(msecs * 1000);
+}
+#elif WIN32
+static inline void gsc_msleep(uint32_t msecs)
+{
+    Sleep(msecs);
+}
+#endif /* __linux__ */
 
-bool verbose = false;
-bool quiet = false;
-bool use_progress_bar = false;
+
+static bool verbose = false;
+static bool quiet = false;
+static bool use_progress_bar = false;
 
 #define fwupd_verbose(fmt, ...) do {          \
     if (verbose && !quiet)                    \
@@ -793,6 +805,9 @@ int firmware_update(const char *device_path,
         fwupd_error("Update process failed\n");
         print_device_fw_status(&handle);
     }
+    /* delay between the update and version retrieve */
+#define GSC_DELAY_AFTER_FW_UPDATE_MSEC 2000
+    gsc_msleep(GSC_DELAY_AFTER_FW_UPDATE_MSEC);
 
     ret = igsc_device_fw_version(&handle, &device_fw_version);
     if (ret != IGSC_SUCCESS)
@@ -2043,7 +2058,7 @@ exit:
     return ret;
 }
 
-const char *type_table[] = {
+static const char * const type_table[] = {
     [IGSC_IMAGE_TYPE_UNKNOWN] = "Unknown",
     [IGSC_IMAGE_TYPE_GFX_FW] = "GFX FW Update image",
     [IGSC_IMAGE_TYPE_OPROM] = "Oprom Code and Data Update image",
