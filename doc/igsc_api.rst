@@ -52,7 +52,7 @@ image.
 
   * *Under Linux:* A file descriptor returned by `int open(2)`
 
-  * *Under Windows:* A file handle returned by `HANLDE CreateFile()`
+  * *Under Windows:* A file handle returned by `HANDLE CreateFile()`
 
 .. code-block:: c
 
@@ -358,12 +358,11 @@ The structure represents the device firmware version.
       char version[8];
     };
 
-  .. note::
 
-**Version comparison logic is**
+    **Version comparison logic is**
 
 
-.. code-block:: c
+  .. code-block:: c
 
     if ((Image major version != Device major version) &&
         (Device Major version != 0)):
@@ -511,6 +510,7 @@ which holds paring state of the OPROM image information.
                                  IN  struct igsc_oprom_image *img,
                                  IN  igsc_progress_func_t progress_f,
                                  IN  void *ctx);
+
   *Example 1:*
 
     .. code-block:: c
@@ -555,7 +555,7 @@ which holds paring state of the OPROM image information.
           uint32_t *buf = NULL;
           size_t buf_len = 0;
           struct igsc_device_info device;
-          struct igsc_device_handle *hadnle;
+          struct igsc_device_handle *handle;
 
           device_path = argv[1];
 
@@ -580,7 +580,7 @@ which holds paring state of the OPROM image information.
    .. code-block:: c
 
      uint8_t igsc_oprom_version_compare(const struct igsc_oprom_version *image_ver,
-                                      const struct igsc_oprom_version *device_ver);
+                                        const struct igsc_oprom_version *device_ver);
 
 2.7 IFR (In-Field Repair) functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -671,7 +671,7 @@ which holds paring state of the OPROM image information.
 
       int main(int argc, char *argv[])
       {
-          struct igsc_device_handle *hadnle;
+          struct igsc_device_handle *handle;
           uint8_t run_status = 0;
           uint32_t error_code = 0;
           uint8_t result = 0;
@@ -761,7 +761,7 @@ which holds paring state of the OPROM image information.
 
       int main(int argc, char *argv[])
       {
-          struct igsc_device_handle *hadnle;
+          struct igsc_device_handle *handle;
           int ret;
           char *device_path;
           uint32_t device_num = 0;
@@ -1003,6 +1003,85 @@ which holds paring state of the OPROM image information.
       int igsc_gfsp_get_health_indicator(IN struct igsc_device_handle *handle,
                                          OUT uint8_t *health_indicator);
 
+  j. Send generic GFSP command and receive response
+
+    Provides API for sending a generic GFSP command cmd with
+    data taken from the in_buffer of size in_buffer_size.
+    The data received in the GFSP reply is stored in the
+    out_buffer of size out_buffer_size. The actual received data
+    size is stored in *actual_response_size.
+
+    .. code-block:: c
+
+      int igsc_gfsp_heci_cmd(struct igsc_device_handle *handle, uint32_t gfsp_cmd,
+                             uint8_t* in_buffer, size_t in_buffer_size,
+                             uint8_t* out_buffer, size_t out_buffer_size,
+                             size_t *actual_response_size);
+
+   k. Send Late Binding payload command
+
+    .. code-block:: c
+
+     /**
+       * Late Binding flags
+       *
+       */
+      enum csc_late_binding_flags {
+          CSC_LATE_BINDING_FLAGS_IS_PERSISTENT_MASK = 0x1,
+      };
+
+      /**
+       * Late Binding payload type
+       */
+      enum csc_late_binding_type {
+          CSC_LATE_BINDING_TYPE_INVALID = 0,
+          CSC_LATE_BINDING_TYPE_FAN_TABLE,
+          CSC_LATE_BINDING_TYPE_VR_CONFIG
+      };
+
+      /**
+       * Late Binding payload status
+       */
+      enum csc_late_binding_status {
+          CSC_LATE_BINDING_STATUS_SUCCESS           = 0,
+          CSC_LATE_BINDING_STATUS_4ID_MISMATCH      = 1,
+          CSC_LATE_BINDING_STATUS_ARB_FAILURE       = 2,
+          CSC_LATE_BINDING_STATUS_GENERAL_ERROR     = 3,
+          CSC_LATE_BINDING_STATUS_INVALID_PARAMS    = 4,
+          CSC_LATE_BINDING_STATUS_INVALID_SIGNATURE = 5,
+          CSC_LATE_BINDING_STATUS_INVALID_PAYLOAD   = 6,
+          CSC_LATE_BINDING_STATUS_TIMEOUT           = 7,
+      };
+
+      Provides API for sending a Late Binding HECI command, with
+      Late Binding payload type,
+      Late Binding flags to be sent to the firmware and
+      Late Binding data to be sent to the firmware with the size of the payload data
+      as IN parameters and with Late Binding payload status as OUT parameter
+      Returns IGSC_SUCCESS if successful, otherwise error code.
+
+      int igsc_device_update_late_binding_config(IN struct  igsc_device_handle *handle,
+                                                 IN uint32_t type, /* enum csc_late_binding_type */
+                                                 IN uint32_t flags, /* enum csc_late_binding_flags */
+                                                 IN uint8_t *payload, IN size_t payload_size,
+                                                 OUT uint32_t *status); /* enum csc_late_binding_status */
+
+   l. Send ARB SVN commit command
+
+      Provides API for sending an ARB SVN commit command to the firmware.
+      Second parameter return firmware error in case of failure
+
+    .. code-block:: c
+
+      int igsc_device_commit_arb_svn(IN struct  igsc_device_handle *handle, uint8_t *fw_error);
+
+   m. Retrieve minimal allowed ARB SVN
+
+    .. code-block:: c
+
+      int igsc_device_get_min_allowed_arb_svn(IN struct  igsc_device_handle *handle,
+                                              OUT uint8_t *min_allowed_svn);
+
 
 2.8 Device Enumeration API
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1064,7 +1143,6 @@ done via SetupDi interface.
    const char *igsc_translate_firmware_status(IN uint32_t firmware_status);
 
 2.10 Signed in-field firmware data update API
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Support SKU specific signed in-field data update.  It allows OEMs to perform
 secure in-field update of the configuration data.
@@ -1072,6 +1150,7 @@ secure in-field update of the configuration data.
 1. Firmware Data Version
 
 The structure represents the device firmware data version.
+Version 2 adds ARB SVN and other fields.
 
   .. code-block:: c
 
@@ -1081,7 +1160,16 @@ The structure represents the device firmware data version.
         uint16_t major_vcn;              /**< GSC in-field data firmware major VCN */
      };
 
-  .. note::
+    struct igsc_fwdata_version2 {
+        uint32_t format_version;         /**< GSC in-field data firmware version format */
+        uint32_t oem_manuf_data_version; /**< GSC in-field data firmware OEM manufacturing data version */
+        uint32_t oem_manuf_data_version_fitb; /**< GSC in-field data firmware OEM manufacturing data version from FITB */
+        uint16_t major_version;          /**< GSC in-field data firmware major version */
+        uint16_t major_vcn;              /**< GSC in-field data firmware major VCN */
+        uint32_t flags;                  /**< GSC in-field data firmware flags */
+        uint32_t data_arb_svn;           /**< GSC in-field data firmware SVN */
+        uint32_t data_arb_svn_fitb;      /**< GSC in-field data firmware SVN from FITB */
+    };
 
 **Version comparison logic is**
 
@@ -1128,10 +1216,12 @@ The structure represents the device firmware data version.
 
      enum igsc_fwdata_version_compare_result {
          IGSC_FWDATA_VERSION_REJECT_VCN = 0,                    /**< VCN version is bigger than device VCN */
-         IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION = 1, /**< OEM manufacturing data version is not bigger than device OEM version */
+         IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION = 1, /**< OEM manufacturing data version is not bigger than device OEM version or equal in ver2 comparison */
          IGSC_FWDATA_VERSION_REJECT_DIFFERENT_PROJECT = 2,      /**< major version is different from device major version */
          IGSC_FWDATA_VERSION_ACCEPT = 3,                        /**< update image VCN version is equal than the one on the device, and OEM is bigger */
-        IGSC_FWDATA_VERSION_OLDER_VCN = 4,                     /**< update image VCN version is smaller to the one on the device */
+         IGSC_FWDATA_VERSION_OLDER_VCN = 4,                     /**< update image VCN version is smaller than the one on the device */
+         IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT = 5,           /**< the version format is the wrong one or incompatible */
+         IGSC_FWDATA_VERSION_REJECT_ARB_SVN = 6,                /**< update image SVN version is smaller than the one on the device */
      };
 
 5. Retrieve device firmware data version
@@ -1141,6 +1231,8 @@ The structure represents the device firmware data version.
 
      int igsc_device_fwdata_version(IN  struct igsc_device_handle *handle,
                                     OUT struct igsc_fwdata_version *version);
+     int igsc_device_fwdata_version2(IN  struct igsc_device_handle *handle,
+                                     OUT struct igsc_fwdata_version2 *version);
 
 6. Firmware data image information retrieval:
 
@@ -1154,13 +1246,16 @@ The structure represents the device firmware data version.
                                   IN const uint8_t *buffer,
                                   IN uint32_t buffer_len);
 
-  b. The function retrieve firmware data version from the firmware data image
+  b. The functions retrieve firmware data version from the firmware data image
      associated with the image handle `img`.
 
     .. code-block:: c
 
        int igsc_image_fwdata_version(IN struct igsc_fwdata_image *img,
                                      OUT struct igsc_fwdata_version *version);
+
+       int igsc_image_fwdata_version2(IN struct igsc_fwdata_image *img,
+                                      OUT struct igsc_fwdata_version2 *version);
 
   c. The function provides number of supported devices by the image
 
@@ -1238,7 +1333,7 @@ The structure represents the device firmware data version.
                                    IN  void *ctx);
 
 2.11 IAF Update API
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 Intel Accelerator Fabric Platform Specific Configuration (PSC) update is
 done as a blob, without parsing the image and with zero metadata.
 
@@ -1257,7 +1352,7 @@ done as a blob, without parsing the image and with zero metadata.
 
 
 2.12 Retrieving versions of different firmware components
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 All firmware partitions (including IFR and PSC partitions) are identified by version,
 as these versions can be changed by a customer or internal teams.
 The following APIs retrieve versions of the relevant firmware components.

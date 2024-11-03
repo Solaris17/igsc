@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2019-2022 Intel Corporation
+ * Copyright (C) 2019-2024 Intel Corporation
  */
 
 /**
@@ -97,7 +97,7 @@ void igsc_set_log_level(unsigned int log_level);
 /**
  *  @brief Retrieves current log level
  *
- *  @return current log lelel
+ *  @return current log level
  */
 IGSC_EXPORT
 unsigned int igsc_get_log_level(void);
@@ -167,10 +167,12 @@ enum igsc_version_compare_result {
  */
 enum igsc_fwdata_version_compare_result {
     IGSC_FWDATA_VERSION_REJECT_VCN = 0,                    /**< VCN version is bigger than device VCN */
-    IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION = 1, /**< OEM manufacturing data version is not bigger than device OEM version */
+    IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION = 1, /**< OEM manufacturing data version is not bigger than device OEM version or equal in ver2 comparison */
     IGSC_FWDATA_VERSION_REJECT_DIFFERENT_PROJECT = 2,      /**< major version is different from device major version */
     IGSC_FWDATA_VERSION_ACCEPT = 3,                        /**< update image VCN version is equal than the one on the device, and OEM is bigger */
-    IGSC_FWDATA_VERSION_OLDER_VCN = 4,                     /**< update image VCN version is smaller to the one on the device */
+    IGSC_FWDATA_VERSION_OLDER_VCN = 4,                     /**< update image VCN version is smaller than the one on the device */
+    IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT = 5,           /**< the version format is the wrong one or incompatible */
+    IGSC_FWDATA_VERSION_REJECT_ARB_SVN = 6,                /**< update image SVN version is smaller than the one on the device */
 };
 
 /**
@@ -183,6 +185,26 @@ struct igsc_fwdata_version {
     uint16_t major_vcn;              /**< GSC in-field data firmware major VCN */
 };
 
+#define IGSC_FWDATA_FORMAT_VERSION_1 0x1
+#define IGSC_FWDATA_FORMAT_VERSION_2 0x2
+
+#define IGSC_FWDATA_FITB_VALID_MASK 0x1
+
+/**
+ * Structure to store versions
+ * for GSC in-field data firmware update image (version 2)
+ */
+struct igsc_fwdata_version2 {
+    uint32_t format_version;         /**< GSC in-field data firmware version format */
+    uint32_t oem_manuf_data_version; /**< GSC in-field data firmware OEM manufacturing data version */
+    uint32_t oem_manuf_data_version_fitb; /**< GSC in-field data firmware OEM manufacturing data version from FITB */
+    uint16_t major_version;          /**< GSC in-field data firmware major version */
+    uint16_t major_vcn;              /**< GSC in-field data firmware major VCN */
+    uint32_t flags;                  /**< GSC in-field data firmware flags */
+    uint32_t data_arb_svn;           /**< GSC in-field data firmware SVN */
+    uint32_t data_arb_svn_fitb;      /**< GSC in-field data firmware SVN from FITB */
+};
+
 /**
  * OPROM partition version size in bytes
  */
@@ -191,7 +213,7 @@ struct igsc_fwdata_version {
  * Structure to store OPROM version data
  */
 struct igsc_oprom_version {
-    char version[IGSC_OPROM_VER_SIZE]; /**< OPROM Version string */
+    uint8_t version[IGSC_OPROM_VER_SIZE]; /**< OPROM Version string */
 };
 
 /**
@@ -294,6 +316,7 @@ struct igsc_device_info {
 #define IGSC_ERROR_INCOMPATIBLE      (IGSC_ERROR_BASE + 10) /**< Incompatible request */
 #define IGSC_ERROR_TIMEOUT           (IGSC_ERROR_BASE + 11) /**< The operation has timed out */
 #define IGSC_ERROR_PERMISSION_DENIED (IGSC_ERROR_BASE + 12) /**< The process doesn't have access rights */
+#define IGSC_ERROR_BUSY              (IGSC_ERROR_BASE + 13) /**< Device is currently busy, try again later */
 /**
  * @}
  */
@@ -363,11 +386,52 @@ uint32_t igsc_get_last_firmware_status(IN struct igsc_device_handle *handle);
 IGSC_EXPORT
 const char *igsc_translate_firmware_status(IN uint32_t firmware_status);
 
+#define IGSC_MAX_FW_STATUS_INDEX 5
+
 /**
- * @}
+ *  @brief Read firmware status register
+ *
+ *  @param handle A handle to the device.
+ *  @param fwsts_index index of the firmware status register (0..IGSC_MAX_FW_STATUS_INDEX)
+ *  @param fwsts_value returned firmware status values
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
  */
+IGSC_EXPORT
+int igsc_read_fw_status_reg(IN struct igsc_device_handle *handle,
+                            IN uint32_t fwsts_index,
+                            OUT uint32_t *fwsts_value);
 
+ /**
+  *  @brief Callback function template for printing igsc log messages.
+  *
+  *  @param log_level log level of the error message.
+  *  @param fmt log message format
+  *  @param ... variadic parameters
+  */
+typedef void (*igsc_log_func_t)(enum igsc_log_level_type log_level, const char* fmt, ...);
 
+/**
+ *  @brief Sets log callback function.
+ *          This interface is not thread-aware,
+ *          Changes here may lead to crashes in multi-thread app
+ *          when the thread setting callback exists without setting this
+ *          call-back function to NULL while other thread from same app continues to run.
+ *
+ *  @param igsc_log_func_t pointer to the callback function for igsc library log messages.
+ *          passing NULL to this will disable logging callback function.
+ *  @return void.
+ */
+IGSC_EXPORT
+void igsc_set_log_callback_func(IN igsc_log_func_t log_callback_f);
+
+/**
+ *  @brief Retrieves log callback function pointer
+ *
+ *  @return log callback function pointer
+ */
+IGSC_EXPORT
+igsc_log_func_t igsc_get_log_callback_func(void);
 
 /**
  *  @brief Initializes a GSC Firmware Update device.
@@ -677,6 +741,19 @@ int igsc_device_fwdata_version(IN  struct igsc_device_handle *handle,
                                OUT struct igsc_fwdata_version *version);
 
 /**
+ *  @brief Retrieves the GSC in-field data Firmware Version from the device
+ *         With ability to return FW Data version in second version format.
+ *
+ *  @param handle A handle to the device.
+ *  @param version The memory to store obtained firmware version.
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+ */
+IGSC_EXPORT
+int igsc_device_fwdata_version2(IN  struct igsc_device_handle* handle,
+    OUT struct igsc_fwdata_version2* version);
+
+/**
  *  @brief Retrieves the GSC in-field data Firmware version from the supplied GSC in-field data Firmware update image.
  *
  *  @param img GSC in-field data Firmware image handle
@@ -689,7 +766,21 @@ int igsc_image_fwdata_version(IN struct igsc_fwdata_image *img,
                               OUT struct igsc_fwdata_version *version);
 
 /**
+ *  @brief Retrieves the GSC in-field data Firmware version from the supplied GSC in-field data Firmware update image.
+ *         With ability to return FW Data version in second version format.
+ *
+ *  @param img GSC in-field data Firmware image handle
+ *  @param version The memory to store the obtained GSC in-field data Firmware version.
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+ */
+IGSC_EXPORT
+int igsc_image_fwdata_version2(IN struct igsc_fwdata_image* img,
+    OUT struct igsc_fwdata_version2* version);
+
+/**
  *  @brief Compares input GSC in-field data firmware update version to the flash one
+ *         With ability to compare FW Data version in second version format.
  *
  *  @param image_ver pointer to the GSC in-field data firmware update image version
  *  @param device_ver pointer to the device GSC data firmware version
@@ -704,6 +795,25 @@ int igsc_image_fwdata_version(IN struct igsc_fwdata_image *img,
 IGSC_EXPORT
 uint8_t igsc_fwdata_version_compare(IN struct igsc_fwdata_version *image_ver,
                                     IN struct igsc_fwdata_version *device_ver);
+
+/**
+ *  @brief Compares input GSC in-field data firmware update version to the flash one
+ *
+ *  @param image_ver pointer to the GSC in-field data firmware update image version
+ *  @param device_ver pointer to the device GSC data firmware version
+ *
+ *  @return
+ *  * IGSC_FWDATA_VERSION_REJECT_VCN                    if image VCN version is bigger than device VCN
+ *  * IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION if OEM manufacturing data version is not bigger than device OEM version or equal in ver2 comparison
+ *  * IGSC_FWDATA_VERSION_REJECT_DIFFERENT_PROJECT      if major version is different from device major version
+ *  * IGSC_FWDATA_VERSION_ACCEPT                        if VCN version is equal to the device's one, and OEM is bigger
+ *  * IGSC_FWDATA_VERSION_OLDER_VCN                     if VCN version is smaller than the one on the device
+ *  * IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT           if version format is the wrong one or incompatible
+ *  * IGSC_FWDATA_VERSION_REJECT_ARB_SVN                if update image SVN version is smaller than the one on the device
+ */
+IGSC_EXPORT
+uint8_t igsc_fwdata_version_compare2(IN struct igsc_fwdata_version2* image_ver,
+                                     IN struct igsc_fwdata_version2* device_ver);
 
 /**
  *  @brief Retrieves a count of of different devices supported
@@ -1512,6 +1622,95 @@ enum igsc_gfsp_health_indicators {
 IGSC_EXPORT
 int igsc_gfsp_get_health_indicator(IN struct igsc_device_handle *handle,
                                    OUT uint8_t *health_indicator);
+
+/**
+ *  @brief Send generic GFSP command and receive response
+ *
+ *  @param handle A handle to the device.
+ *  @param in_buffer pointer to the input buffer
+ *  @param in_buffer_size input buffer size
+ *  @param out_buffer pointer to the output buffer
+ *  @param out_buffer_size output buffer size
+ *  @param actual_out_buffer_size pointer to the actual data size returned in the output buffer
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+*/
+IGSC_EXPORT
+int igsc_gfsp_heci_cmd(struct igsc_device_handle *handle, uint32_t gfsp_cmd,
+                       uint8_t* in_buffer, size_t in_buffer_size,
+                       uint8_t* out_buffer, size_t out_buffer_size,
+                       size_t *actual_out_buffer_size);
+
+/**
+ * Late Binding flags
+ */
+enum csc_late_binding_flags {
+    CSC_LATE_BINDING_FLAGS_IS_PERSISTENT_MASK = 0x1,
+};
+
+/**
+ * Late Binding payload type
+ */
+enum csc_late_binding_type {
+    CSC_LATE_BINDING_TYPE_INVALID = 0,
+    CSC_LATE_BINDING_TYPE_FAN_TABLE,
+    CSC_LATE_BINDING_TYPE_VR_CONFIG
+};
+
+/**
+ * Late Binding payload status
+ */
+enum csc_late_binding_status {
+    CSC_LATE_BINDING_STATUS_SUCCESS           = 0,
+    CSC_LATE_BINDING_STATUS_4ID_MISMATCH      = 1,
+    CSC_LATE_BINDING_STATUS_ARB_FAILURE       = 2,
+    CSC_LATE_BINDING_STATUS_GENERAL_ERROR     = 3,
+    CSC_LATE_BINDING_STATUS_INVALID_PARAMS    = 4,
+    CSC_LATE_BINDING_STATUS_INVALID_SIGNATURE = 5,
+    CSC_LATE_BINDING_STATUS_INVALID_PAYLOAD   = 6,
+    CSC_LATE_BINDING_STATUS_TIMEOUT           = 7,
+};
+
+/**
+ *  @brief Sends Late Binding HECI command
+ *
+ *  @param handle       A handle to the device.
+ *  @param type         Late Binding payload type @enum csc_late_binding_type
+ *  @param flags        Late Binding flags to be sent to the firmware enum csc_late_binding_flags
+ *  @param payload      Late Binding data to be sent to the firmware
+ *  @param payload_size Size of the payload data
+ *  @param status       Late Binding payload status @enum csc_late_binding_status
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+ */
+IGSC_EXPORT
+int igsc_device_update_late_binding_config(IN struct igsc_device_handle *handle,
+                                           IN uint32_t type, /* enum csc_late_binding_type */
+                                           IN uint32_t flags, /* enum csc_late_binding_flags */
+                                           IN uint8_t *payload, IN size_t payload_size,
+                                           OUT uint32_t *status); /* enum csc_late_binding_status */
+/**
+ *  @brief Sends ARB SVN Commit HECI command
+ *
+ *  @param handle   A handle to the device.
+ *  @param fw_error An error returned by firmware in case of failure, can be NULL if not needed
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+ */
+IGSC_EXPORT
+int igsc_device_commit_arb_svn(IN struct  igsc_device_handle *handle, uint8_t *fw_error);
+
+/**
+ *  @brief Retrieves Minimal allowed ARB SVN
+ *
+ *  @param handle          A handle to the device.
+ *  @param min_allowed_svn buffer for minimal allowed ARB SVN value
+ *
+ *  @return IGSC_SUCCESS if successful, otherwise error code.
+ */
+IGSC_EXPORT
+int igsc_device_get_min_allowed_arb_svn(IN struct igsc_device_handle *handle,
+                                        OUT uint8_t *min_allowed_svn);
 
 /**
  * @}

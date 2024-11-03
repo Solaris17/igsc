@@ -36,28 +36,54 @@
     #else /* WIN32 */
 
         #include <syslog.h>
-        #define debug_print(fmt, ...) if (igsc_get_log_level() >= IGSC_LOG_LEVEL_DEBUG) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
+        #define debug_print(fmt, ...) syslog(LOG_DEBUG, fmt, ##__VA_ARGS__)
         #define error_print(fmt, ...) syslog(LOG_ERR, fmt, ##__VA_ARGS__)
-        #define trace_print(fmt, ...) if (igsc_get_log_level() >= IGSC_LOG_LEVEL_TRACE) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
+        #define trace_print(fmt, ...) syslog(LOG_INFO, fmt, ##__VA_ARGS__)
 
     #endif /* _WIN32 */
 
 #else /* SYSLOG */
         #include <stdio.h>
-        #define debug_print(fmt, ...) if (igsc_get_log_level() >= IGSC_LOG_LEVEL_DEBUG) fprintf(stdout, fmt, ##__VA_ARGS__)
+        #define debug_print(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
         #define error_print(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
-        #define trace_print(fmt, ...) if (igsc_get_log_level() >= IGSC_LOG_LEVEL_TRACE) fprintf(stdout, fmt, ##__VA_ARGS__)
+        #define trace_print(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
 #endif /* SYSLOG */
 
+#define MAX_TIME_STRING_LEN 128
+const char *gsc_time(char *buffer, size_t buff_len);
 #define gsc_debug(_fmt_, ...) \
-    debug_print(PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
-                __FILE__, __func__, __LINE__,  ##__VA_ARGS__)
+    if (igsc_get_log_level() >= IGSC_LOG_LEVEL_DEBUG) { \
+        char __time_buf[MAX_TIME_STRING_LEN]; \
+        if (NULL == igsc_get_log_callback_func()) { \
+            debug_print("%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                        gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__,  ##__VA_ARGS__); \
+        } else { \
+            igsc_log_func_t igsc_log_func = igsc_get_log_callback_func(); igsc_log_func(IGSC_LOG_LEVEL_DEBUG, "%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                        gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__,  ##__VA_ARGS__); \
+        }   \
+    }
+
 #define gsc_trace(_fmt_, ...) \
-    trace_print(PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
-                __FILE__, __func__, __LINE__,  ##__VA_ARGS__)
+    if (igsc_get_log_level() >= IGSC_LOG_LEVEL_TRACE) { \
+        char __time_buf[MAX_TIME_STRING_LEN]; \
+        if (NULL == igsc_get_log_callback_func()) { \
+            trace_print("%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                        gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__,  ##__VA_ARGS__) \
+        } else { \
+              igsc_log_func_t igsc_log_func = igsc_get_log_callback_func(); igsc_log_func(IGSC_LOG_LEVEL_TRACE, "%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                        gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__,  ##__VA_ARGS__); \
+        } \
+    }
 
 #define gsc_error(_fmt_, ...) \
-    error_print(PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
-                __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+    if (NULL == igsc_get_log_callback_func()) { \
+        char __time_buf[MAX_TIME_STRING_LEN]; \
+        error_print("%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                    gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
+    } else { \
+        char __time_buf[MAX_TIME_STRING_LEN]; \
+        igsc_log_func_t igsc_log_func = igsc_get_log_callback_func(); igsc_log_func(IGSC_LOG_LEVEL_ERROR, "%s: " PACKAGE_LOG_NAME ": (%s:%s():%d) " _fmt_, \
+                    gsc_time(__time_buf, sizeof(__time_buf)), __FILE__, __func__, __LINE__,  ##__VA_ARGS__); \
+    }
 
 #endif /* __IGSC_UTILS_H__ */

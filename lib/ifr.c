@@ -353,6 +353,134 @@ exit:
     return status;
 }
 
+int igsc_gfsp_heci_cmd(struct igsc_device_handle *handle, uint32_t gfsp_cmd,
+                       uint8_t* in_buffer, size_t in_buffer_size,
+                       uint8_t* out_buffer, size_t out_buffer_size,
+                       size_t *actual_out_buffer_size)
+{
+    int status;
+    size_t request_len;
+    size_t response_len;
+    size_t received_len = 0;
+    size_t received_data_len;
+    size_t buf_len;
+    struct igsc_lib_ctx *lib_ctx;
+
+    struct gfsp_generic_req *req;
+    struct gfsp_generic_res *resp;
+
+    if (!handle || !handle->ctx || !actual_out_buffer_size ||
+        (!in_buffer && in_buffer_size) || (!out_buffer && out_buffer_size))
+    {
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+
+    if (in_buffer_size > lib_ctx->working_buffer_length - sizeof(*req))
+    {
+        gsc_error("Input buffer is too big, must not be bigger than %zd\n",
+                  lib_ctx->working_buffer_length - sizeof(*req));
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    gsc_debug("in generic gfsp heci command, initializing driver\n");
+
+    status = gsc_driver_init(lib_ctx, &GUID_METEE_MKHI);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Cannot initialize driver, status %d\n", status);
+        return status;
+    }
+
+    req = (struct gfsp_generic_req *)lib_ctx->working_buffer;
+    request_len = sizeof(*req) + in_buffer_size;
+    memset(req, 0, request_len);
+    if (in_buffer)
+    {
+        gsc_memcpy_s(req->buffer, lib_ctx->working_buffer_length - sizeof(*req),
+                     in_buffer, in_buffer_size);
+    }
+
+    resp = (struct gfsp_generic_res *)lib_ctx->working_buffer;
+    response_len = sizeof(*resp);
+    buf_len = lib_ctx->working_buffer_length;
+
+    gsc_debug("validating buffer\n");
+
+    status = gsc_fwu_buffer_validate(lib_ctx, request_len, response_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Internal error - failed to validate buffer %d\n", status);
+        goto exit;
+    }
+
+    req->header.group_id = MKHI_GROUP_ID_GFSP;
+    req->header.command = 0;
+    req->gfsp_heci_header = gfsp_cmd;
+
+    gsc_debug("sending command\n");
+
+    status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response %d\n", status);
+        goto exit;
+    }
+
+    if (received_len < sizeof(resp->header))
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    status = gfsp_heci_validate_response_header(lib_ctx, &resp->header,
+                                                resp->gfsp_heci_header,
+                                                gfsp_cmd);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response %d\n", status);
+        goto exit;
+    }
+
+    if (resp->header.result != 0)
+    {
+       gsc_debug("Generic gfsp heci command failed with result 0x%x\n", resp->header.result);
+       status = IGSC_ERROR_PROTOCOL;
+       goto exit;
+    }
+
+    if (received_len < response_len)
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    received_data_len = received_len - response_len;
+    *actual_out_buffer_size = (received_data_len > out_buffer_size) ? out_buffer_size : received_data_len;
+
+    if (out_buffer)
+    {
+        gsc_memcpy_s(out_buffer, out_buffer_size, resp->buffer, *actual_out_buffer_size);
+    }
+
+    if (received_data_len > out_buffer_size)
+    {
+        gsc_error("Out buffer is too small (%zu), received %zu bytes of data\n", out_buffer_size, received_data_len);
+        status = IGSC_ERROR_BUFFER_TOO_SMALL;
+        goto exit;
+    }
+
+    gsc_debug("Generic gfsp heci command success\n");
+
+exit:
+    gsc_driver_deinit(lib_ctx);
+
+    return status;
+}
+
 #define MAX_SUPPORTED_NUM_OF_DEVICE 8 /* In Xe_HP SDV / PVC - should be 8 */
 
 static int gsc_memory_ppr(struct igsc_device_handle *handle,
@@ -1525,6 +1653,138 @@ exit:
     return status;
 }
 
+int igsc_device_update_late_binding_config(IN struct  igsc_device_handle *handle,
+                                           IN uint32_t type, /* enum csc_late_binding_type */
+                                           IN uint32_t flags,
+                                           IN uint8_t *payload, IN size_t payload_size,
+                                           OUT uint32_t *cmd_status) /* enum csc_late_binding_status */
+{
+    int status;
+    size_t request_len;
+    size_t response_len;
+    size_t received_len = 0;
+    size_t buf_len;
+    struct igsc_lib_ctx *lib_ctx;
+
+    struct csc_heci_late_binding_resp *resp;
+    struct csc_heci_late_binding_req *req;
+
+    if (!handle || !handle->ctx || cmd_status == NULL || payload == NULL || payload_size == 0)
+    {
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+
+    if (type != CSC_LATE_BINDING_TYPE_FAN_TABLE && type != CSC_LATE_BINDING_TYPE_VR_CONFIG)
+    {
+        gsc_error("Wrong payload type %u\n", type);
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    if ((flags & ~(uint32_t)CSC_LATE_BINDING_FLAGS_IS_PERSISTENT_MASK) != 0)
+    {
+        gsc_error("Wrong flags value 0x%x\n", flags);
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    gsc_debug("in late binding, initializing driver\n");
+
+    status = gsc_driver_init(lib_ctx, &GUID_METEE_MKHI);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Cannot initialize driver, status %d\n", status);
+        return status;
+    }
+
+    req = (struct csc_heci_late_binding_req *)lib_ctx->working_buffer;
+    buf_len = lib_ctx->working_buffer_length;
+    if (payload_size > buf_len - sizeof(*req))
+    {
+        gsc_error("Payload size is too big %zu\n", payload_size);
+        status = IGSC_ERROR_INVALID_PARAMETER;
+        goto exit;
+    }
+
+    request_len = sizeof(*req) + payload_size;
+    resp = (struct csc_heci_late_binding_resp *)lib_ctx->working_buffer;
+    response_len = sizeof(*resp);
+
+    status = gsc_fwu_buffer_validate(lib_ctx, request_len, response_len);
+    if (status != IGSC_SUCCESS)
+    {
+        goto exit;
+    }
+
+    memset(req, 0, request_len);
+    req->header.command = GFX_SRV_MKHI_LATE_BINDING_CMD;
+    req->header.group_id = MKHI_GROUP_ID_GFX_SRV;
+    req->type = type;
+    req->flags = flags;
+    req->payload_size = (uint32_t)payload_size;
+    if (gsc_memcpy_s(req->payload, buf_len - sizeof(*req), payload, payload_size))
+    {
+        gsc_error("Copy of payload data failed\n");
+        status = IGSC_ERROR_INTERNAL;
+        goto exit;
+    }
+
+    status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response (%d)\n", status);
+        goto exit;
+    }
+
+    if (received_len < sizeof(*resp))
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    status = mkhi_heci_validate_response_header(lib_ctx, &resp->header,
+                                                GFX_SRV_MKHI_LATE_BINDING_CMD);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response (%d)\n", status);
+        goto exit;
+    }
+
+    if (received_len != response_len)
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    if (resp->type != type)
+    {
+        gsc_error("Received wrong payload type in response from firmware %u, expected %u\n",
+                  resp->type, type);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    if (resp->reserved[0] != 0 || resp->reserved[1] != 0 )
+    {
+        gsc_error("HECI message response is leaking data\n");
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    gsc_debug("success, status %u\n", resp->status);
+
+    *cmd_status = resp->status;
+    status = IGSC_SUCCESS;
+
+exit:
+    gsc_driver_deinit(lib_ctx);
+
+    return status;
+
+}
+
 static int gsc_get_version(struct igsc_lib_ctx *lib_ctx,
                            uint32_t partition,
                            uint8_t *version, size_t version_length)
@@ -1567,7 +1827,7 @@ static int gsc_get_version(struct igsc_lib_ctx *lib_ctx,
         goto exit;
     }
 
-    if (received_len < sizeof(resp))
+    if (received_len < sizeof(*resp))
     {
         gsc_error("Error in HECI read - bad size %zu\n", received_len);
         status = IGSC_ERROR_PROTOCOL;

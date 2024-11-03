@@ -1,7 +1,7 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
  *
- * Copyright (C) 2019-2021 Intel Corporation
+ * Copyright (C) 2019-2024 Intel Corporation
  */
 
 /**
@@ -30,16 +30,54 @@
 #define GSC_FWU_STATUS_SUCCESS                        0x0
 /** GSC firmware update status size error */
 #define GSC_FWU_STATUS_SIZE_ERROR                     0x5
-/** GSC oprom structure is invalid error */
-#define GSC_FWU_STATUS_UPDATE_OPROM_INVALID_STRUCTURE 0x1035
-/** GSC Update oprom section does not exists error */
-#define GSC_FWU_STATUS_UPDATE_OPROM_SECTION_NOT_EXIST 0x1032
+
 /** GSC firmware update status invalid command error */
 #define GSC_FWU_STATUS_INVALID_COMMAND                0x8D
 /** GSC firmware update status invalid param error */
 #define GSC_FWU_STATUS_INVALID_PARAMS                 0x85
 /** GSC firmware update general failure */
-#define  GSC_FWU_STATUS_FAILURE                       0x9E
+#define GSC_FWU_STATUS_FAILURE                        0x9E
+
+/** Update to Image with lower ARB SVN is not allowed */
+#define GSC_FWU_STATUS_LOWER_ARB_SVN                  0x233
+/** Update to Image with lower TCB SVN is not allowed */
+#define GSC_FWU_STATUS_LOWER_TCB_SVN                  0x23B
+/** Update to Image with lower VCN is not allowed */
+#define GSC_FWU_STATUS_LOWER_VCN                      0x23C
+
+/** Update Image must not have SVN smaller than SVN of Flash Image */
+#define GSC_FWU_STATUS_UPDATE_IUP_SVN                 0x29A
+/** Update Image must not have VCN smaller than VCN of Flash Image */
+#define GSC_FWU_STATUS_UPDATE_IUP_VCN                 0x29B
+/** Update Image length is not the same as Flash Image length */
+#define GSC_FWU_STATUS_UPDATE_IMAGE_LEN               0x29C
+/** Update from PV bit ON to PV bit OFF is not allowed */
+#define GSC_FWU_STATUS_UPDATE_PV_BIT                  0x29D
+
+/** Update between engineering build vs regular build is not allowed.
+    Both builds have to be the same type: regular or engineering build */
+#define GSC_FWU_STATUS_UPDATE_ENGINEERING_MISMATCH    0x2B2
+
+/** Loader failed to verify manifest signature of OROM */
+#define GSC_FWU_STATUS_UPDATE_VER_MAN_FAILED_OROM      0x102C
+/** Device ID does not match any device ID entry in the array of
+    supported Device IDs in the manifest extension */
+#define GSC_FWU_STATUS_UPDATE_DEVICE_ID_NOT_MATCH      0x102F
+
+/** GSC Update oprom section does not exists error */
+#define GSC_FWU_STATUS_UPDATE_OPROM_SECTION_NOT_EXIST  0x1032
+/** GSC oprom structure is invalid error */
+#define GSC_FWU_STATUS_UPDATE_OPROM_INVALID_STRUCTURE  0x1035
+/** Failed to get OPROM version */
+#define GSC_FWU_STATUS_UPDATE_GET_OPROM_VERSION_FAILED 0x103C
+
+/** OPROM is not signed */
+#define GSC_FWU_STATUS_UPDATE_OROM_INVALID_STRUCTURE   0x1045
+/** Loader failed to verify manifest signature of GFX data */
+#define GSC_FWU_STATUS_UPDATE_VER_MAN_FAILED_GFX_DATA  0x1048
+/** GFX Data OEM manufacturing data version must be bigger than current version */
+#define GSC_FWU_STATUS_UPDATE_GFX_DATA_OEM_MANUF_VER   0x104B
+
 /** @} */
 
 /**
@@ -76,7 +114,7 @@ enum gsc_fwu_heci_payload_type {
     GSC_FWU_HECI_PAYLOAD_TYPE_GFX_FW     = 1, /**< graphics firmware                    */
     GSC_FWU_HECI_PAYLOAD_TYPE_OPROM_DATA = 2, /**< oprom data partition                 */
     GSC_FWU_HECI_PAYLOAD_TYPE_OPROM_CODE = 3, /**< oprom code partition                 */
-    GSC_FWU_HECI_PAYLOAD_TYPE_IAF_PSC    = 4, /**< acclerator fabric configuration data */
+    GSC_FWU_HECI_PAYLOAD_TYPE_IAF_PSC    = 4, /**< accelerator fabric configuration data */
     GSC_FWU_HECI_PAYLOAD_TYPE_FWDATA     = 5, /**< firmware data partition              */
 };
 
@@ -190,8 +228,10 @@ struct gsc_fw_data_heci_version_req {
  * @param oem_manuf_data_version_nvm oem version in nvm
  * @param oem_manuf_data_version_fitb oem version in fitb
  * @param major_version project major version
- * @param oem_manuf_data_version_fitb_valid
+ * @param major_vcn project major vcn
  * @param flags fwdata get version flags
+ * @param data_arb_svn_nvm arb svn in nvm
+ * @param data_arb_svn_fitb arb svn in firb
  * @param reserved
  */
 struct gsc_fw_data_heci_version_resp {
@@ -201,9 +241,10 @@ struct gsc_fw_data_heci_version_resp {
     uint32_t                     oem_manuf_data_version_fitb;
     uint16_t                     major_version;
     uint16_t                     major_vcn;
-    uint32_t                     oem_manuf_data_version_fitb_valid;
     uint32_t                     flags;
-    uint32_t                     reserved[7];
+    uint32_t                     data_arb_svn_nvm;
+    uint32_t                     data_arb_svn_fitb;
+    uint32_t                     reserved[6];
 };
 
 
@@ -249,6 +290,11 @@ enum gsc_fwu_heci_metadata_version {
 #define MCHI_READ_FILE_EX 0xA
 
 #define FILE_ID_MCA_OEM_VERSION 0x1001f000
+
+#define MCA_ARBH_SVN_COMMIT   0x1b
+#define MCA_ARBH_SVN_GET_INFO 0x1c
+
+#define CSE_RBE_USAGE 3
 
 /**
  * @struct gsc_fwu_heci_image_metadata
@@ -463,6 +509,77 @@ struct mchi_read_file_ex_res {
     struct mkhi_msg_hdr header;
     uint32_t data_size;
     uint8_t data[];
+};
+
+/**
+ * @brief request to commit arbh svn
+ *
+ * @param header @ref mkhi_msg_hdr, (MCHI header is the same as MKHI one),
+ *               MCHI_GROUP_ID_MCA and MCA_ARBH_SVN_COMMIT for MCHI group_id and command
+ * @param usage_id usage id of the manifest to commit, MFT_KEY_USAGE_INDEX_CSE_RBE_MANIFEST
+ * @param reserved0 reserved field
+ * @param reserved1 reserved field
+ */
+struct mchi_arbh_svn_commit_req
+{
+    struct mkhi_msg_hdr header;
+    uint8_t usage_id;
+    uint8_t reserved0;
+    uint16_t reserved1;
+};
+
+/**
+ * @brief response to the request to commit arbh svn
+ *
+ * @param header @ref mkhi_msg_hdr, (MCHI header is the same as MKHI one),
+ *               MCHI_GROUP_ID_MCA and MCA_ARBH_SVN_COMMIT for MCHI group_id and command
+ */
+struct mchi_arbh_svn_commit_resp
+{
+    struct mkhi_msg_hdr header;
+};
+
+/**
+ * @brief arbh svn info entry
+ *
+ * @param usage_id usage id of the info entry, MFT_KEY_USAGE_INDEX_CSE_RBE_MANIFEST
+ * @param flags, not relevant
+ * @param executing_svn currently executing svn
+ * @param min_allowed_svn minimal allowed svn
+ */
+struct mchi_arbh_svn_info_entry
+{
+     uint8_t usage_id;
+     uint8_t flags;
+     uint8_t executing_svn;
+     uint8_t min_allowed_svn;
+};
+
+/**
+ * @brief request to get arbh svn info
+ *
+ * @param header @ref mkhi_msg_hdr, (MCHI header is the same as MKHI one),
+ *               MCHI_GROUP_ID_MCA and MCA_ARBH_SVN_GET_INFO for MCHI group_id and command
+ * @param reserved reserved field
+ */
+struct mchi_arbh_svn_get_info_req
+{
+    struct mkhi_msg_hdr header;
+};
+
+/**
+ * @brief response to the request to get arbh svn info
+ *
+ * @param header @ref mkhi_msg_hdr, (MCHI header is the same as MKHI one),
+ *               MCHI_GROUP_ID_MCA and MCA_ARBH_SVN_GET_INFO for MCHI group_id and command
+ * @param num_entries number of arbh svn info entries
+ * @param entries array of arbh svn info entries
+ */
+struct mchi_arbh_svn_get_info_resp
+{
+    struct mkhi_msg_hdr header;
+    uint32_t num_entries;
+    struct mchi_arbh_svn_info_entry entries[];
 };
 
 /** @} */

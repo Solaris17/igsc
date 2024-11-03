@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: Apache-2.0
- * Copyright (C) 2019-2023 Intel Corporation
+ * Copyright (C) 2019-2024 Intel Corporation
  */
 
 #include <stdint.h>
@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "msvc/config.h"
 #include "gcc/config.h"
@@ -33,10 +34,11 @@
 DEFINE_GUID(GUID_METEE_FWU, 0x87d90ca5, 0x3495, 0x4559,
             0x81, 0x05, 0x3f, 0xbf, 0xa3, 0x7b, 0x8b, 0x79);
 
-enum gsc_dg2_sku_id {
-    GSC_DG2_SKUID_SOC1 = 0,
-    GSC_DG2_SKUID_SOC2 = 1,
-    GSC_DG2_SKUID_SOC3 = 2
+enum gsc_sku_id {
+    GSC_SKUID_SOC1 = 0,
+    GSC_SKUID_SOC2 = 1,
+    GSC_SKUID_SOC3 = 2,
+    GSC_SKUID_SOC4 = 3
 };
 
 enum gsc_soc_step_id {
@@ -162,6 +164,18 @@ void gsc_driver_deinit(struct igsc_lib_ctx *lib_ctx)
     lib_ctx->driver_init_called = false;
 }
 
+void gsc_metee_log(bool is_error, const char* fmt, ...)
+{
+    UNUSED_VAR(is_error);
+#define DEBUG_MSG_LEN 1024
+    char msg[DEBUG_MSG_LEN];
+    va_list varl;
+    va_start(varl, fmt);
+    vsnprintf(msg, DEBUG_MSG_LEN, fmt, varl);
+    va_end(varl);
+    printf("%s\n", msg);
+}
+
 #define INIT_ITERATIONS  3
 #define INIT_TIMEOUT 1000
 
@@ -172,6 +186,8 @@ int gsc_driver_init(struct igsc_lib_ctx *lib_ctx, IN const GUID *guid)
     int status;
     uint8_t power_control;
     uint32_t counter = 0;
+    unsigned int igsc_log_level;
+    unsigned int tee_log_level = TEE_LOG_LEVEL_ERROR;
 
     for (counter = 0; counter < INIT_ITERATIONS; counter++)
     {
@@ -198,12 +214,30 @@ int gsc_driver_init(struct igsc_lib_ctx *lib_ctx, IN const GUID *guid)
         goto exit;
     }
 
+    igsc_log_level = igsc_get_log_level();
+    if (igsc_log_level >= IGSC_LOG_LEVEL_DEBUG)
+    {
+        tee_log_level = TEE_LOG_LEVEL_VERBOSE;
+    }
+    TeeSetLogLevel(&lib_ctx->driver_handle, tee_log_level);
+    TeeSetLogCallback(&lib_ctx->driver_handle, gsc_metee_log);
+
     tee_status = TeeConnect(&lib_ctx->driver_handle);
     if (!TEE_IS_SUCCESS(tee_status))
     {
         TeeDisconnect(&lib_ctx->driver_handle);
         gsc_error("Error in HECI connect (%d)\n", tee_status);
-        status = status_tee2fu(tee_status);
+        /**
+         * Special case for connect - igsc library should propagate the
+         * TEE_BUSY error (in Linux) and TEE_UNABLE_TO_COMPLETE_OPERATION (in Win)
+         * as IGSC_ERROR_BUSY to the caller , only for the Connect failures,
+         * because in other operations those errors mean something else,
+         * not that someone has taken the client's handle
+         **/
+        if (tee_status == TEE_BUSY || tee_status == TEE_UNABLE_TO_COMPLETE_OPERATION)
+            status = IGSC_ERROR_BUSY;
+        else
+            status = status_tee2fu(tee_status);
         goto exit;
     }
 
@@ -232,6 +266,19 @@ exit:
     return status;
 }
 
+#ifdef _DEBUG
+static void gsc_suppress_errors(struct igsc_lib_ctx *lib_ctx)
+{
+    (void)lib_ctx;
+    return;
+}
+
+static void gsc_unsuppress_errors(struct igsc_lib_ctx *lib_ctx)
+{
+    (void)lib_ctx;
+    return;
+}
+#else
 static void gsc_suppress_errors(struct igsc_lib_ctx *lib_ctx)
 {
     lib_ctx->suppress_errors = true;
@@ -246,6 +293,7 @@ static void gsc_unsuppress_errors(struct igsc_lib_ctx *lib_ctx)
 
     TeeSetLogLevel(&lib_ctx->driver_handle, lib_ctx->tee_prev_log_level);
 }
+#endif
 
 static bool gsc_errors_suppressed(struct igsc_lib_ctx *lib_ctx)
 {
@@ -578,29 +626,8 @@ static int gsc_fwu_heci_validate_response_header(struct igsc_lib_ctx *lib_ctx,
 
     if (resp_header->status != GSC_FWU_STATUS_SUCCESS)
     {
-        const char *msg;
-        switch(resp_header->status) {
-        case GSC_FWU_STATUS_SIZE_ERROR:
-            msg = "Num of bytes to read/write/erase is bigger than partition size";
-            break;
-        case GSC_FWU_STATUS_UPDATE_OPROM_INVALID_STRUCTURE:
-            msg = "Wrong oprom signature";
-            break;
-        case GSC_FWU_STATUS_UPDATE_OPROM_SECTION_NOT_EXIST:
-            msg = "Update oprom section does not exists on flash";
-            break;
-        case GSC_FWU_STATUS_INVALID_COMMAND:
-            msg = "Invalid HECI message sent";
-            break;
-        case GSC_FWU_STATUS_INVALID_PARAMS:
-            msg = "Invalid command parameters";
-            break;
-        case GSC_FWU_STATUS_FAILURE:
-        /* fall through */
-        default:
-            msg = "General firmware error";
-            break;
-        }
+        const char *msg = igsc_translate_firmware_status(resp_header->status);
+
         gsc_error("HECI message failed with status %s 0x%x\n",
                 msg, resp_header->status);
         status = IGSC_ERROR_PROTOCOL;
@@ -1023,14 +1050,20 @@ static int gsc_fwu_end(struct igsc_lib_ctx *lib_ctx)
     tee_status = TeeWrite(&lib_ctx->driver_handle, req, request_len, NULL, TEE_WRITE_TIMEOUT);
     if (!TEE_IS_SUCCESS(tee_status))
     {
-        gsc_error("Error in HECI write (%d)\n", tee_status);
-        status = status_tee2fu(tee_status);
-        goto exit;
+        /* There is a possible race condition in the heci driver between the ack for the write of
+           fwu_end message and the firmware reset that happens in the firmware immediately after that.
+           If the driver is slow it may cause a situation when the write ack interrupt and the reset
+           interrupt are being processed together by the driver (in the same interrupt handler call)
+           and so the driver would first look at the reset and decide that the write failed.
+           So when sending fwu_end command, which as we know causes firmware reset by design, we do
+           not check the return value of the write because it may be a failure as a result of this
+           race condition described above.
+         */
+        gsc_debug("Error in HECI write (%d) on writing fwu_end message\n", tee_status);
     }
 
     status = IGSC_SUCCESS;
 
-exit:
     return status;
 }
 
@@ -1506,17 +1539,21 @@ static int gsc_device_hw_config(struct igsc_lib_ctx *lib_ctx,
     hw_config_1->hw_step = resp->hw_step;
 
     /* convert to firmware bit mask for easier comparison */
-    if (resp->hw_sku == GSC_DG2_SKUID_SOC1)
+    if (resp->hw_sku == GSC_SKUID_SOC1)
     {
         hw_config_1->hw_sku = GSC_IFWI_TAG_SOC1_SKU_BIT;
     }
-    else if (resp->hw_sku == GSC_DG2_SKUID_SOC3)
+    else if (resp->hw_sku == GSC_SKUID_SOC3)
     {
         hw_config_1->hw_sku = GSC_IFWI_TAG_SOC3_SKU_BIT;
     }
-    else if (resp->hw_sku == GSC_DG2_SKUID_SOC2)
+    else if (resp->hw_sku == GSC_SKUID_SOC2)
     {
         hw_config_1->hw_sku = GSC_IFWI_TAG_SOC2_SKU_BIT;
+    }
+    else if (resp->hw_sku == GSC_SKUID_SOC4)
+    {
+        hw_config_1->hw_sku = GSC_IFWI_TAG_SOC4_SKU_BIT;
     }
     else
     {
@@ -1630,10 +1667,11 @@ int igsc_hw_config_to_string(IN const struct igsc_hw_config *hw_config,
     }
     else
     {
-        ret = snprintf(buf, length, "hw sku: [ %s%s%s]",
+        ret = snprintf(buf, length, "hw sku: [ %s%s%s%s]",
+                       (GSC_IFWI_TAG_SOC1_SKU_BIT & to_hw_config_1(hw_config)->hw_sku) ? "SOC1 " : "",
                        (GSC_IFWI_TAG_SOC2_SKU_BIT & to_hw_config_1(hw_config)->hw_sku) ? "SOC2 " : "",
                        (GSC_IFWI_TAG_SOC3_SKU_BIT & to_hw_config_1(hw_config)->hw_sku) ? "SOC3 " : "",
-                       (GSC_IFWI_TAG_SOC1_SKU_BIT & to_hw_config_1(hw_config)->hw_sku) ? "SOC1 " : "");
+                       (GSC_IFWI_TAG_SOC4_SKU_BIT & to_hw_config_1(hw_config)->hw_sku) ? "SOC4 " : "");
     }
     if (ret < 0)
     {
@@ -2604,7 +2642,7 @@ const char *igsc_translate_firmware_status(IN  uint32_t firmware_status)
         msg = "Success";
         break;
     case GSC_FWU_STATUS_SIZE_ERROR:
-        msg = "Num of bytes to read/write/erase is bigger than partition size";
+        msg = "Num of bytes to read/write/erase is wrong";
         break;
     case GSC_FWU_STATUS_UPDATE_OPROM_INVALID_STRUCTURE:
         msg = "Wrong oprom signature";
@@ -2617,6 +2655,48 @@ const char *igsc_translate_firmware_status(IN  uint32_t firmware_status)
         break;
     case GSC_FWU_STATUS_INVALID_PARAMS:
         msg = "Invalid command parameters";
+        break;
+    case GSC_FWU_STATUS_LOWER_ARB_SVN:
+        msg = "Update to Image with lower ARB SVN is not allowed";
+        break;
+    case GSC_FWU_STATUS_LOWER_TCB_SVN:
+        msg = "Update to Image with lower TCB SVN is not allowed";
+        break;
+    case GSC_FWU_STATUS_LOWER_VCN:
+        msg = "Update to Image with lower VCN is not allowed";
+        break;
+    case GSC_FWU_STATUS_UPDATE_IUP_SVN:
+        msg = "Update Image must not have SVN smaller than SVN of Flash Image";
+        break;
+    case GSC_FWU_STATUS_UPDATE_IUP_VCN:
+        msg = "Update Image must not have VCN smaller than VCN of Flash Image";
+        break;
+    case GSC_FWU_STATUS_UPDATE_IMAGE_LEN:
+        msg = "Update Image length is not the same as Flash Image length";
+        break;
+    case GSC_FWU_STATUS_UPDATE_PV_BIT:
+        msg = "Update from PV bit ON to PV bit OFF is not allowed";
+        break;
+    case GSC_FWU_STATUS_UPDATE_ENGINEERING_MISMATCH:
+        msg = "Update between engineering build vs regular build is not allowed";
+        break;
+    case GSC_FWU_STATUS_UPDATE_VER_MAN_FAILED_OROM:
+        msg = "Loader failed to verify manifest signature of OROM";
+        break;
+    case GSC_FWU_STATUS_UPDATE_DEVICE_ID_NOT_MATCH:
+        msg = "Device ID does not match any device ID entry in the array of supported Device IDs in the manifest extension";
+        break;
+    case GSC_FWU_STATUS_UPDATE_GET_OPROM_VERSION_FAILED:
+        msg = "Failed to get OPROM version";
+        break;
+    case GSC_FWU_STATUS_UPDATE_OROM_INVALID_STRUCTURE:
+        msg = "OPROM is not signed";
+        break;
+    case GSC_FWU_STATUS_UPDATE_VER_MAN_FAILED_GFX_DATA:
+        msg = "Loader failed to verify manifest signature of GFX data";
+        break;
+    case GSC_FWU_STATUS_UPDATE_GFX_DATA_OEM_MANUF_VER:
+        msg = "GFX Data OEM manufacturing data version must be bigger than current version";
         break;
     case GSC_FWU_STATUS_FAILURE:
     /* fall through */
@@ -2700,6 +2780,94 @@ exit:
     return status;
 }
 
+static int gsc_fwdata_get_version2(struct igsc_lib_ctx* lib_ctx, struct igsc_fwdata_version2* version)
+{
+    int status;
+    size_t request_len;
+    size_t response_len;
+    size_t received_len = 0;
+    size_t buf_len;
+
+    struct gsc_fw_data_heci_version_resp* resp;
+    struct gsc_fw_data_heci_version_req* req;
+    uint8_t command_id = GSC_FWU_HECI_COMMAND_ID_GET_GFX_DATA_UPDATE_INFO;
+
+    if (version == NULL)
+    {
+        return IGSC_ERROR_INTERNAL;
+    }
+
+    req = (struct gsc_fw_data_heci_version_req*)lib_ctx->working_buffer;
+    request_len = sizeof(*req);
+
+    resp = (struct gsc_fw_data_heci_version_resp*)lib_ctx->working_buffer;
+    response_len = sizeof(*resp);
+    buf_len = lib_ctx->working_buffer_length;
+
+    status = gsc_fwu_buffer_validate(lib_ctx, request_len, response_len);
+    if (status != IGSC_SUCCESS)
+    {
+        return status;
+    }
+
+    memset(req, 0, request_len);
+    req->header.command_id = command_id;
+    status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response (%d)\n", status);
+        goto exit;
+    }
+
+    if (received_len < sizeof(resp->response))
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    status = gsc_fwu_heci_validate_response_header(lib_ctx, &resp->response, command_id);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response (%d)\n", status);
+        goto exit;
+    }
+
+    if (received_len != response_len)
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    switch (resp->format_version)
+    {
+    case IGSC_FWDATA_FORMAT_VERSION_1:
+        version->data_arb_svn = 0;
+        version->data_arb_svn_fitb = 0;
+        break;
+    case IGSC_FWDATA_FORMAT_VERSION_2:
+        version->data_arb_svn = resp->data_arb_svn_nvm;
+        version->data_arb_svn_fitb = resp->data_arb_svn_fitb;
+        break;
+    default:
+        gsc_error("Bad version format %u\n", resp->format_version);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    version->flags = resp->flags;
+    version->format_version = resp->format_version;
+    version->major_vcn = resp->major_vcn;
+    version->major_version = resp->major_version;
+    version->oem_manuf_data_version = resp->oem_manuf_data_version_nvm;
+    version->oem_manuf_data_version_fitb = resp->oem_manuf_data_version_fitb;
+
+    status = IGSC_SUCCESS;
+
+exit:
+    return status;
+}
 
 static bool fwdata_match_device(struct igsc_device_info *device,
                                 struct igsc_fwdata_device_info *fwdata_device)
@@ -2717,55 +2885,14 @@ int igsc_device_fwdata_update(IN  struct igsc_device_handle *handle,
                               IN  igsc_progress_func_t progress_f,
                               IN  void *ctx)
 {
-    struct igsc_fwdata_image *img;
-    int ret;
-    struct igsc_fwdata_version orig_ver;
-    struct igsc_fwdata_version new_ver;
-
     if (handle == NULL || handle->ctx == NULL || buffer == NULL || buffer_len == 0)
     {
         gsc_error("Bad parameters\n");
         return IGSC_ERROR_INVALID_PARAMETER;
     }
 
-    /* Calling igsc_image_fwdata_init() only for parsing and validation of the buffer */
-    ret = igsc_image_fwdata_init(&img, buffer, buffer_len);
-    if (ret != IGSC_SUCCESS)
-    {
-        gsc_error("Failed to parse fwdata image: %d\n", ret);
-        return ret;
-    }
-    ret = image_fwdata_get_version(img, &orig_ver);
-    if (ret != IGSC_SUCCESS)
-    {
-        gsc_error("Failed to get fwdata version: %d\n", ret);
-        return ret;
-    }
-
-    igsc_image_fwdata_release(img);
-
-    ret = gsc_update(handle, buffer, buffer_len, progress_f, ctx,
-                     GSC_FWU_HECI_PAYLOAD_TYPE_FWDATA, false);
-    if (ret != IGSC_SUCCESS)
-    {
-        gsc_error("Failed to update fwdata: %d\n", ret);
-        return ret;
-    }
-
-    ret = igsc_device_fwdata_version(handle, &new_ver);
-    if (ret != IGSC_SUCCESS)
-    {
-       gsc_error("failed to receive fwdata version after the update\n");
-       return ret;
-    }
-
-    if (memcmp(&new_ver, &orig_ver, sizeof(struct igsc_fwdata_version)))
-    {
-       gsc_error("after the update fwdata version wasn't updated on the device\n");
-       return IGSC_ERROR_BAD_IMAGE;
-    }
-
-    return IGSC_SUCCESS;
+    return gsc_update(handle, buffer, buffer_len, progress_f, ctx,
+                      GSC_FWU_HECI_PAYLOAD_TYPE_FWDATA, false);
 }
 
 int igsc_device_fwdata_image_update(IN  struct igsc_device_handle *handle,
@@ -2860,6 +2987,33 @@ int igsc_device_fwdata_version(IN  struct igsc_device_handle *handle,
     return ret;
 }
 
+int igsc_device_fwdata_version2(IN  struct igsc_device_handle* handle,
+                                OUT struct igsc_fwdata_version2* version)
+{
+    struct igsc_lib_ctx* lib_ctx;
+    int ret;
+
+    if (handle == NULL || handle->ctx == NULL || version == NULL)
+    {
+        gsc_error("Bad parameters\n");
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+    ret = gsc_driver_init(lib_ctx, &GUID_METEE_FWU);
+    if (ret != IGSC_SUCCESS)
+    {
+        gsc_error("Failed to init HECI driver\n");
+        return ret;
+    }
+
+    ret = gsc_fwdata_get_version2(lib_ctx, version);
+
+    gsc_driver_deinit(lib_ctx);
+
+    return ret;
+}
+
 int igsc_image_fwdata_version(IN struct igsc_fwdata_image *img,
                               OUT struct igsc_fwdata_version *version)
 {
@@ -2869,6 +3023,17 @@ int igsc_image_fwdata_version(IN struct igsc_fwdata_image *img,
     }
 
     return image_fwdata_get_version(img, version);
+}
+
+int igsc_image_fwdata_version2(IN struct igsc_fwdata_image* img,
+                               OUT struct igsc_fwdata_version2* version)
+{
+    if (img == NULL || version == NULL)
+    {
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    return image_fwdata_get_version2(img, version);
 }
 
 uint8_t igsc_fwdata_version_compare(IN struct igsc_fwdata_version *image_ver,
@@ -2894,6 +3059,94 @@ uint8_t igsc_fwdata_version_compare(IN struct igsc_fwdata_version *image_ver,
     if (image_ver->major_vcn < device_ver->major_vcn)
     {
         return IGSC_FWDATA_VERSION_OLDER_VCN;
+    }
+
+    return IGSC_FWDATA_VERSION_ACCEPT;
+}
+
+/* Compares input GSC in-field data firmware update version to the flash one and determine ability to update
+ *
+ * Rules:
+ *  The current FW's CSC FW Major version needs to be equal to the update image's CSC FW major version
+ *  The current FW's OEM manufacturing data version needs to be smaller or higher than the update image's OEM manufacturing data version
+ *  The current FW's data ARB SVN needs to be smaller or equal to the update image's data ARB SVN
+ *  The current FW OEM manufacturing date version / data ARB SVN are determined by the fitb valid indication:
+ *      In case fitb is not valid (data update context does not exist), the values should be taken from NVM
+ *      In case fitb is valid (data update context exist), the values should be taken from fitb.
+ */
+uint8_t igsc_fwdata_version_compare2(IN struct igsc_fwdata_version2* image_ver,
+                                     IN struct igsc_fwdata_version2* device_ver)
+{
+    uint32_t oem_manuf_data_version_device;
+    uint32_t data_arb_svn;
+
+    if (image_ver == NULL || device_ver == NULL)
+    {
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    if (image_ver->format_version < IGSC_FWDATA_FORMAT_VERSION_1 ||
+        image_ver->format_version > IGSC_FWDATA_FORMAT_VERSION_2)
+    {
+        return IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT;
+    }
+    if (device_ver->format_version < IGSC_FWDATA_FORMAT_VERSION_1 ||
+        device_ver->format_version > IGSC_FWDATA_FORMAT_VERSION_2)
+    {
+        return IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT;
+    }
+    if (image_ver->format_version != device_ver->format_version)
+    {
+        return IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT;
+    }
+
+    oem_manuf_data_version_device = (device_ver->flags & IGSC_FWDATA_FITB_VALID_MASK) ?
+        device_ver->oem_manuf_data_version_fitb : device_ver->oem_manuf_data_version;
+    data_arb_svn = (device_ver->flags & IGSC_FWDATA_FITB_VALID_MASK) ?
+        device_ver->data_arb_svn_fitb : device_ver->data_arb_svn;
+
+    if (image_ver->major_version != device_ver->major_version)
+    {
+        return IGSC_FWDATA_VERSION_REJECT_DIFFERENT_PROJECT;
+    }
+    if (image_ver->major_vcn > device_ver->major_vcn)
+    {
+        return IGSC_FWDATA_VERSION_REJECT_VCN;
+    }
+
+    if (image_ver->format_version == IGSC_FWDATA_FORMAT_VERSION_1)
+    {
+        if (image_ver->oem_manuf_data_version <= oem_manuf_data_version_device)
+        {
+            return IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION;
+        }
+    }
+    else
+    {
+        if (image_ver->oem_manuf_data_version == oem_manuf_data_version_device)
+        {
+            return IGSC_FWDATA_VERSION_REJECT_OEM_MANUF_DATA_VERSION;
+        }
+    }
+
+    if (image_ver->major_vcn < device_ver->major_vcn)
+    {
+        return IGSC_FWDATA_VERSION_OLDER_VCN;
+    }
+
+    if (image_ver->format_version == IGSC_FWDATA_FORMAT_VERSION_1)
+    {
+        if (image_ver->data_arb_svn != 0 || data_arb_svn != 0)
+        {
+            return IGSC_FWDATA_VERSION_REJECT_WRONG_FORMAT;
+        }
+    }
+    else
+    {
+        if (image_ver->data_arb_svn < data_arb_svn)
+        {
+            return IGSC_FWDATA_VERSION_REJECT_ARB_SVN;
+        }
     }
 
     return IGSC_FWDATA_VERSION_ACCEPT;
@@ -3041,6 +3294,240 @@ static int mchi_heci_validate_response_header(struct igsc_lib_ctx *lib_ctx,
     status = IGSC_SUCCESS;
 
 exit:
+    return status;
+}
+
+int igsc_device_commit_arb_svn(IN struct igsc_device_handle *handle, OUT uint8_t *fw_error)
+{
+    int status;
+    struct igsc_lib_ctx *lib_ctx;
+    struct mchi_arbh_svn_commit_req *req;
+    struct mchi_arbh_svn_commit_resp *resp;
+    size_t request_len;
+    size_t response_len;
+    size_t received_len = 0;
+    size_t buf_len;
+
+    if (!handle || !handle->ctx)
+    {
+        gsc_error("Bad parameters\n");
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+
+    gsc_debug("in commit arb svn, initializing driver\n");
+
+    status = gsc_driver_init(lib_ctx, &GUID_METEE_MCHI);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("MCHI is not supported on this device, status %d\n", status);
+        return status;
+    }
+
+    req = (struct mchi_arbh_svn_commit_req *)lib_ctx->working_buffer;
+    request_len = sizeof(*req);
+
+    resp = (struct mchi_arbh_svn_commit_resp *)lib_ctx->working_buffer;
+    response_len = sizeof(*resp);
+    buf_len = lib_ctx->working_buffer_length;
+
+    gsc_debug("validating buffer\n");
+
+    status = gsc_fwu_buffer_validate(lib_ctx, request_len, response_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Internal error - failed to validate buffer %d\n", status);
+        goto exit;
+    }
+
+    memset(req, 0, request_len);
+    req->header.group_id = MCHI_GROUP_ID_MCA;
+    req->header.command = MCA_ARBH_SVN_COMMIT;
+    req->usage_id = CSE_RBE_USAGE;
+    req->reserved0 = 0;
+    req->reserved1 = 0;
+
+    gsc_debug("sending command\n");
+
+    status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response %d\n", status);
+        goto exit;
+    }
+
+    if (received_len < sizeof(resp->header))
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    gsc_debug("result = %u\n", resp->header.result);
+    if (fw_error)
+    {
+        *fw_error = resp->header.result;
+    }
+
+    status = mchi_heci_validate_response_header(lib_ctx, &resp->header, MCA_ARBH_SVN_COMMIT);
+    if (status != IGSC_SUCCESS)
+    {
+        goto exit;
+    }
+
+    if (resp->header.result != 0)
+    {
+        gsc_error("ARB SVN commit command failed with error %u\n", resp->header.result);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    status = IGSC_SUCCESS;
+    gsc_debug("ARB SVN commit success\n");
+
+
+exit:
+    gsc_driver_deinit(lib_ctx);
+
+    gsc_debug("status = %d\n", status);
+
+    return status;
+}
+
+int igsc_device_get_min_allowed_arb_svn(struct igsc_device_handle *handle,
+                                        uint8_t *min_allowed_svn)
+{
+    int status;
+    struct igsc_lib_ctx *lib_ctx;
+    struct mchi_arbh_svn_get_info_req *req;
+    struct mchi_arbh_svn_get_info_resp *resp;
+    size_t request_len;
+    size_t response_len;
+    size_t received_len = 0;
+    size_t buf_len;
+    unsigned int i;
+    bool found = false;
+
+    if (!handle || !handle->ctx || !min_allowed_svn)
+    {
+        gsc_error("Bad parameters\n");
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+
+    gsc_debug("in get min allowed arb svn, initializing driver\n");
+
+    status = gsc_driver_init(lib_ctx, &GUID_METEE_MCHI);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("MCHI is not supported on this device, status %d\n", status);
+        return status;
+    }
+
+    req = (struct mchi_arbh_svn_get_info_req *)lib_ctx->working_buffer;
+    request_len = sizeof(*req);
+
+    resp = (struct mchi_arbh_svn_get_info_resp *)lib_ctx->working_buffer;
+    response_len = sizeof(*resp);
+    buf_len = lib_ctx->working_buffer_length;
+
+    gsc_debug("validating buffer\n");
+
+    status = gsc_fwu_buffer_validate(lib_ctx, request_len, response_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Internal error - failed to validate buffer %d\n", status);
+        goto exit;
+    }
+
+    memset(req, 0, request_len);
+    req->header.group_id = MCHI_GROUP_ID_MCA;
+    req->header.command = MCA_ARBH_SVN_GET_INFO;
+
+    gsc_debug("sending command\n");
+
+    status = gsc_tee_command(lib_ctx, req, request_len, resp, buf_len, &received_len);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response %d\n", status);
+        goto exit;
+    }
+
+    if (received_len < sizeof(resp->header))
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    gsc_debug("result = %u\n", resp->header.result);
+
+    status = mchi_heci_validate_response_header(lib_ctx, &resp->header, MCA_ARBH_SVN_GET_INFO);
+    if (status != IGSC_SUCCESS)
+    {
+        goto exit;
+    }
+
+    if (resp->header.result != 0)
+    {
+        gsc_error("Get ARB SVN Info command failed with error %u\n", resp->header.result);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    if (received_len < response_len)
+    {
+        gsc_error("Error in HECI read - bad size %zu\n", received_len);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    if (resp->num_entries > (lib_ctx->working_buffer_length - response_len) /
+                            sizeof(struct mchi_arbh_svn_info_entry))
+    {
+        gsc_error("Too many entries in HECI response %u\n", resp->num_entries);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    if (received_len < response_len + resp->num_entries * sizeof(struct mchi_arbh_svn_info_entry))
+    {
+        gsc_error("Error in HECI read - bad size %zu, num of entries %u, expected size %zu\n",
+                  received_len, resp->num_entries,
+                  received_len + resp->num_entries * sizeof(struct mchi_arbh_svn_info_entry));
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    for (i = 0; i < resp->num_entries; i++)
+    {
+        gsc_debug("entry[%u] usage_id %u min_svn %u\n", i, resp->entries[i].usage_id,
+                  resp->entries[i].min_allowed_svn);
+        if (resp->entries[i].usage_id == CSE_RBE_USAGE)
+        {
+            *min_allowed_svn = resp->entries[i].min_allowed_svn;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        gsc_error("Did not found entry with usage_id %u\n", CSE_RBE_USAGE);
+        status = IGSC_ERROR_PROTOCOL;
+        goto exit;
+    }
+
+    status = IGSC_SUCCESS;
+    gsc_debug("Get ARB SVN Info success\n");
+
+exit:
+    gsc_driver_deinit(lib_ctx);
+
+    gsc_debug("status = %d\n", status);
+
     return status;
 }
 
@@ -3277,4 +3764,45 @@ int igsc_device_oem_version(IN  struct igsc_device_handle *handle,
 
     version->length = (uint16_t) received_version_size;
     return ret;
+}
+
+int igsc_read_fw_status_reg(IN struct igsc_device_handle *handle,
+                            IN uint32_t fwsts_index,
+                            OUT uint32_t *fwsts_value)
+{
+    int status;
+    struct igsc_lib_ctx *lib_ctx;
+
+    if (!handle || !handle->ctx || !fwsts_value || fwsts_index > IGSC_MAX_FW_STATUS_INDEX)
+    {
+        gsc_error("Bad parameters\n");
+        return IGSC_ERROR_INVALID_PARAMETER;
+    }
+
+    lib_ctx = handle->ctx;
+
+    gsc_debug("read fw status: initializing driver\n");
+
+    status = gsc_driver_init(lib_ctx, &GUID_METEE_FWU);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Cannot initialize HECI client, status %d\n", status);
+        return status;
+    }
+
+    status = get_fwsts(lib_ctx, fwsts_index, fwsts_value);
+    if (status != IGSC_SUCCESS)
+    {
+        gsc_error("Invalid HECI message response %d\n", status);
+        goto exit;
+    }
+
+    gsc_debug("fw_sts[%u] = 0x%x\n", fwsts_index, *fwsts_value);
+
+exit:
+    gsc_driver_deinit(lib_ctx);
+
+    gsc_debug("ret = %d\n", status);
+
+    return status;
 }

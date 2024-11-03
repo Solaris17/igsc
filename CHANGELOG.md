@@ -1,5 +1,120 @@
 # IGSC FUL
 
+## [v0.9.4] - 2024-09-19
+
+### Added
+1. lib: add timestamps to logs
+2. cli: implement read firmware status register in cli
+3. lib: implement read firmware status register library API
+4. cli: print error message when device iterator failed
+
+### Changed
+1. lib: don't suppress metee error messages in debug mode
+
+### Fixed
+1. igsc: lib: fix device enumeration in linux
+
+## [v0.9.3] - 2024-07-23
+
+### Fixed
+1. conan: fix typo in conan.cmake
+2. lib: fix typos in the library
+3. doc: fix typos in api documentation
+4. ci: fix-up codespell configuration
+5. ut: check for null before strlen in test_strdup
+6. lib: fix igsc_get_log_callback_func prototype
+
+### Added
+1. lib: add soc4 hardware sku
+
+## [v0.9.2] - 2024-07-15
+
+### Fixed
+1. lib: fix parameter check in igsc_gfsp_heci_cmd
+
+## [v0.9.1] - 2024-07-11
+
+### Added
+1. cli: add a retry on igsc_device_fwdata_version2
+
+### Fixed
+1. ut: fix gfsc heci generic command test
+2. lib: fix response size check
+3. cli: fix possible memory leak in fwupd_strerror
+
+### Changed
+1. lib: expand firmware update errors handling
+
+## [v0.9.0] - 2024-06-20
+
+### Added
+1. lib: adding support to print IGSC debug logs via callback function
+2. lib: add dedicated arb svn support
+3. cli: add dedicated arb svn support
+4. tests: add dedicated arb svn support
+
+### Fixed
+1. lib: drop version check from igsc_device_fwdata_update
+2. cli: fix fw data update check
+
+## [v0.8.21] - 2024-05-26
+
+### Changed
+1. lib: pop the metee library version to 4.1.0 in conan
+2. lib: set verbose metee mode
+
+## [v0.8.20] - 2024-05-22
+
+### Fixed
+1. lib: ignore return value of write on fwu_end command
+
+## [v0.8.19] - 2024-05-17
+
+### Added
+1. cli: implement retry mechanism when device is busy
+2. lib: return busy indication on special connect failures
+
+### Fixed
+1. lib: fix fwdata heci response struct
+
+### Removed
+1. Doxygen: drop HTML timestamp
+
+## [v0.8.18] - 2024-02-20
+
+### Added
+1. doc: add documentation for arb svn library api
+2. ut: add tests for arb svn API
+3. cli: implement arb svn commands in cli
+4. lib: implement arb svn library API
+
+### Fixed
+1. cli: fix description of the device in oem version command
+2. doc: fix doc generation errors and warnings
+3. CHANGELOG: fix item numbering
+
+## [v0.8.17] - 2024-01-03
+
+### Added
+
+1. docs: add igsc_device_update_late_binding_config
+2. ut: add test for igsc_device_update_late_binding_config
+3. cli: add late-binding command line option
+4. lib: implement igsc_device_update_late_binding_config api
+5. lib: add general gfsp heci command api
+6. cli: add gfsp generic command to cli
+7. ut: add tests for general gfsp heci cmd library api
+8. doc: add generic gfsp heci message api documentation
+9. README: add testing compilation explanation
+
+### Fixed
+1. lib: make OEM version an array of uint_8 instead of char
+2. ut: fix handle initialization
+
+### Changed
+1. cli: print firmware status as hex form
+
+
 ## [v0.8.16] - 2023-10-31
 
 ### Added
@@ -162,7 +277,7 @@
 3. ci: add quckbuild windows build script
 4. cmake: add windows presets
 5. cmake: add option to download dependencies from conan
-6. cmake: enchance metee search
+6. cmake: enhance metee search
 7. add error messages prints for unsupported hw config
 8. src: add check of the versions after update
 9. lib: add check of the versions after update
@@ -351,7 +466,7 @@ Note: non backward compatible change (num_of_tiles to max_num_of_tiles)
 ### Changed
 
 1. ut: remove obsolete definition of read_ifr_file
-2. cmake: enchance metee search
+2. cmake: enhance metee search
 
 ## [v0.6.0] - 2022-02-20
 

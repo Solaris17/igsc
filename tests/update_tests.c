@@ -131,6 +131,11 @@ uint32_t TEEAPI TeeSetLogLevel(IN PTEEHANDLE handle, IN uint32_t log_level)
     return 0;
 }
 
+TEESTATUS TEEAPI TeeSetLogCallback(IN const PTEEHANDLE handle, TeeLogCallback log_callback)
+{
+    return 0;
+}
+
 int driver_working_buffer_alloc(struct igsc_lib_ctx *lib_ctx);
 void driver_working_buffer_free(struct igsc_lib_ctx *lib_ctx);
 
@@ -298,9 +303,8 @@ static void create_response_fwu_data_info(const struct gsc_fw_data_heci_version_
     resp->oem_manuf_data_version_fitb = 0;
     resp->major_version = 0;
     resp->major_vcn = 0;
-    resp->oem_manuf_data_version_fitb_valid = 0;
     resp->flags = 0;
-    for (unsigned int i = 0; i < 7; i++)
+    for (unsigned int i = 0; i < 6; i++)
     {
         resp->reserved[i] = 0;
     }

@@ -27,6 +27,11 @@ target_link_libraries(${PROJECT_NAME} igsc
 )
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME igsc)
 
+
+if(ENABLE_TEST_GENERIC_GFSP_API)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DENABLE_TEST_GENERIC_GFSP_API)
+endif()
+
 if(NOT BUILD_SHARED_LIBS)
   if(CMAKE_C_COMPILER_ID MATCHES Clang OR
      CMAKE_C_COMPILER_ID MATCHES AppleClang OR
